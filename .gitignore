@@ -1,0 +1,28 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+
+# Environments (uv.lock IS committed for reproducibility)
+.venv/
+
+# Data (PTB-XL and any source corpus — never committed)
+data/
+
+# Experiment outputs
+outputs/
+multirun/
+wandb/
+checkpoints/
+*.pt
+*.ckpt
+
+# Notebooks
+.ipynb_checkpoints/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
