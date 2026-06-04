@@ -8,8 +8,9 @@ __pycache__/
 # Environments (uv.lock IS committed for reproducibility)
 .venv/
 
-# Data (PTB-XL and any source corpus — never committed)
-data/
+# Data (PTB-XL and any source corpus — never committed). Anchored to repo root
+# so it does not match the src/deep_ecg/data/ package.
+/data/
 
 # Experiment outputs
 outputs/
