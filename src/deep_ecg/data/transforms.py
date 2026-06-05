@@ -38,15 +38,18 @@ class Standardize:
         return (x - self.mean) / self.std
 
 
+# Augmentations draw from the global NumPy RNG; with multiple DataLoader workers
+# a per-worker ``worker_init_fn`` reseeds it so the streams are decorrelated.
+
+
 class RandomTemporalShift:
     """Shift the signal in time by up to ``max_shift`` samples, zero-filling."""
 
-    def __init__(self, max_shift: int, rng: np.random.Generator | None = None) -> None:
+    def __init__(self, max_shift: int) -> None:
         self.max_shift = max_shift
-        self.rng = rng or np.random.default_rng()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        shift = int(self.rng.integers(-self.max_shift, self.max_shift + 1))
+        shift = int(np.random.randint(-self.max_shift, self.max_shift + 1))
         if shift == 0:
             return x
         out = np.zeros_like(x)
@@ -60,27 +63,25 @@ class RandomTemporalShift:
 class RandomScaling:
     """Multiply the whole signal by a random factor ~ N(1, sigma)."""
 
-    def __init__(self, sigma: float, rng: np.random.Generator | None = None) -> None:
+    def __init__(self, sigma: float) -> None:
         self.sigma = sigma
-        self.rng = rng or np.random.default_rng()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        return x * np.float32(self.rng.normal(1.0, self.sigma))
+        return x * np.float32(np.random.normal(1.0, self.sigma))
 
 
 class RandomLeadMask:
     """Zero out up to ``max_leads`` randomly chosen leads."""
 
-    def __init__(self, max_leads: int, rng: np.random.Generator | None = None) -> None:
+    def __init__(self, max_leads: int) -> None:
         self.max_leads = max_leads
-        self.rng = rng or np.random.default_rng()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        k = int(self.rng.integers(0, self.max_leads + 1))
+        k = int(np.random.randint(0, self.max_leads + 1))
         if k == 0:
             return x
         x = x.copy()
-        leads = self.rng.choice(x.shape[0], size=k, replace=False)
+        leads = np.random.choice(x.shape[0], size=k, replace=False)
         x[leads] = 0.0
         return x
 
@@ -88,12 +89,11 @@ class RandomLeadMask:
 class GaussianNoise:
     """Add zero-mean Gaussian noise with standard deviation ``sigma``."""
 
-    def __init__(self, sigma: float, rng: np.random.Generator | None = None) -> None:
+    def __init__(self, sigma: float) -> None:
         self.sigma = sigma
-        self.rng = rng or np.random.default_rng()
 
     def __call__(self, x: np.ndarray) -> np.ndarray:
-        return x + self.rng.normal(0.0, self.sigma, size=x.shape).astype(np.float32)
+        return x + np.random.normal(0.0, self.sigma, size=x.shape).astype(np.float32)
 
 
 _AUGMENTATIONS = {
@@ -104,9 +104,7 @@ _AUGMENTATIONS = {
 }
 
 
-def build_augmentations(
-    config: dict | None, rng: np.random.Generator | None = None
-) -> list[Transform]:
+def build_augmentations(config: dict | None) -> list[Transform]:
     """Build the list of enabled augmentations from a config mapping.
 
     ``config`` maps an augmentation name to its parameter value (or ``None`` /
@@ -121,5 +119,5 @@ def build_augmentations(
         if name not in _AUGMENTATIONS:
             raise ValueError(f"unknown augmentation: {name!r}")
         cls, param = _AUGMENTATIONS[name]
-        transforms.append(cls(**{param: value}, rng=rng))
+        transforms.append(cls(**{param: value}))
     return transforms

@@ -17,7 +17,7 @@ from deep_ecg.models import build_model
 from deep_ecg.training.losses import build_loss
 from deep_ecg.training.schedulers import build_scheduler
 from deep_ecg.training.trainer import Trainer
-from deep_ecg.utils.seed import seed_everything
+from deep_ecg.utils.seed import seed_everything, seed_worker
 
 
 @hydra.main(version_base=None, config_path="configs", config_name="config")
@@ -32,15 +32,18 @@ def main(cfg: DictConfig) -> float:
         drop_unlabeled=cfg.data.drop_unlabeled,
     )
     augmentations = OmegaConf.to_container(cfg.data.augmentations, resolve=True)
-    train_ds, val_ds, test_ds, stats = build_datasets(
-        source, augmentations=augmentations, rng=np.random.default_rng(cfg.seed)
-    )
+    train_ds, val_ds, test_ds, stats = build_datasets(source, augmentations=augmentations)
     np.savez(run_dir / "lead_stats.npz", **stats)
 
     def loader(ds, shuffle, drop_last=False):
+        kwargs = {}
+        if shuffle:  # decorrelated, reproducible augmentation + shuffling
+            kwargs["worker_init_fn"] = seed_worker
+            kwargs["generator"] = torch.Generator().manual_seed(cfg.seed)
         return DataLoader(
             ds, batch_size=cfg.data.batch_size, shuffle=shuffle,
             num_workers=cfg.data.num_workers, pin_memory=True, drop_last=drop_last,
+            **kwargs,
         )
 
     train_loader = loader(train_ds, shuffle=True, drop_last=True)

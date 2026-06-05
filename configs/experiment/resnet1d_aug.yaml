@@ -1,0 +1,20 @@
+# @package _global_
+
+defaults:
+  - override /model: resnet1d
+
+trainer:
+  epochs: 150
+
+data:
+  augmentations:
+    temporal_shift: 100   # up to 1 s at 100 Hz
+    scaling: 0.1
+    lead_mask: 2
+    gaussian_noise: 0.1
+
+wandb:
+  group: baseline
+  name: resnet1d_aug
+  tags: [baseline, resnet1d, augmentation]
+  notes: ResNet1D with augmentation, 150 epochs

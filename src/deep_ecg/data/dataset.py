@@ -73,7 +73,6 @@ def fit_lead_stats(
 def build_datasets(
     source: ECGSource,
     augmentations: dict | None = None,
-    rng: np.random.Generator | None = None,
     train_folds: Sequence[int] = DEFAULT_TRAIN_FOLDS,
     val_fold: int = DEFAULT_VAL_FOLD,
     test_fold: int = DEFAULT_TEST_FOLD,
@@ -89,7 +88,7 @@ def build_datasets(
     )
     mean, std = fit_lead_stats(source, train_idx)
     standardize = Standardize(mean, std)
-    train_tf = Compose([standardize, *build_augmentations(augmentations, rng)])
+    train_tf = Compose([standardize, *build_augmentations(augmentations)])
     eval_tf = Compose([standardize])
     return (
         ECGDataset(source, train_idx, train_tf),

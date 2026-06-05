@@ -1,0 +1,20 @@
+# @package _global_
+
+defaults:
+  - override /model: cnn_transformer
+
+trainer:
+  epochs: 150
+
+data:
+  augmentations:
+    temporal_shift: 100   # up to 1 s at 100 Hz
+    scaling: 0.1
+    lead_mask: 2
+    gaussian_noise: 0.1
+
+wandb:
+  group: baseline
+  name: cnn_transformer_aug
+  tags: [baseline, cnn_transformer, augmentation]
+  notes: CNN+Transformer with augmentation, 150 epochs
