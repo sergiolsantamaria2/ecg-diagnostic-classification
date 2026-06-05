@@ -75,6 +75,30 @@ class Trainer:
             targets.append(y.numpy())
         return np.concatenate(targets), np.concatenate(scores)
 
+    @torch.no_grad()
+    def predict_tta(
+        self, loader: DataLoader, crop_len: int, n_crops: int = 5
+    ) -> tuple[np.ndarray, np.ndarray]:
+        """Test-time augmentation: average sigmoid over evenly-spaced crops.
+
+        Matches the cropped distribution the model was trained on, instead of
+        feeding the full-length signal it never saw during training.
+        """
+        self.model.eval()
+        scores, targets = [], []
+        for x, y in loader:
+            x = x.to(self.device, non_blocking=True)
+            length = x.shape[-1]
+            starts = np.linspace(0, length - crop_len, n_crops).astype(int)
+            probs = torch.zeros(x.shape[0], len(self.class_names), device=self.device)
+            for start in starts:
+                with self._autocast():
+                    logits = self.model(x[..., start : start + crop_len])
+                probs += torch.sigmoid(logits).float()
+            scores.append((probs / len(starts)).cpu().numpy())
+            targets.append(y.numpy())
+        return np.concatenate(targets), np.concatenate(scores)
+
     def evaluate(self, loader: DataLoader) -> dict:
         y_true, y_score = self.predict(loader)
         return compute_metrics(y_true, y_score, self.class_names)

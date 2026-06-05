@@ -26,6 +26,9 @@ from deep_ecg.training.trainer import Trainer
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("run_dir", type=Path, help="training output directory")
+    parser.add_argument("--tta-crop-len", type=int, default=None,
+                        help="evaluate with test-time crop averaging of this length")
+    parser.add_argument("--tta-n-crops", type=int, default=5)
     args = parser.parse_args()
 
     cfg = OmegaConf.load(args.run_dir / ".hydra" / "config.yaml")
@@ -45,8 +48,12 @@ def main() -> None:
 
     trainer = Trainer(model, class_names=source.classes)
     loader = lambda ds: DataLoader(ds, batch_size=256, num_workers=8, pin_memory=True)
-    y_val, s_val = trainer.predict(loader(val_ds))
-    y_test, s_test = trainer.predict(loader(test_ds))
+    if args.tta_crop_len:
+        predict = lambda ds: trainer.predict_tta(loader(ds), args.tta_crop_len, args.tta_n_crops)
+    else:
+        predict = lambda ds: trainer.predict(loader(ds))
+    y_val, s_val = predict(val_ds)
+    y_test, s_test = predict(test_ds)
 
     metrics = compute_metrics(y_test, s_test, source.classes)
     thresholds = tune_thresholds(y_val, s_val, source.classes)
