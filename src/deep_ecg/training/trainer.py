@@ -23,9 +23,9 @@ class Trainer:
     def __init__(
         self,
         model: torch.nn.Module,
-        loss_fn: torch.nn.Module,
-        optimizer: torch.optim.Optimizer,
-        class_names: Sequence[str],
+        loss_fn: torch.nn.Module | None = None,
+        optimizer: torch.optim.Optimizer | None = None,
+        class_names: Sequence[str] = (),
         scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
         device: str | None = None,
         amp: bool = True,
@@ -34,7 +34,7 @@ class Trainer:
     ) -> None:
         self.device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         self.model = model.to(self.device)
-        self.loss_fn = loss_fn.to(self.device)
+        self.loss_fn = loss_fn.to(self.device) if loss_fn is not None else None
         self.optimizer = optimizer
         self.scheduler = scheduler
         self.class_names = list(class_names)
