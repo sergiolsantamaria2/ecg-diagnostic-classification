@@ -7,6 +7,7 @@ num_workers: 8
 
 # Augmentations (train only). null disables; off for the baseline.
 augmentations:
+  crop: null             # random window length in samples (eval uses full signal)
   temporal_shift: null   # max shift in samples
   scaling: null          # sigma of N(1, sigma)
   lead_mask: null        # max leads to zero

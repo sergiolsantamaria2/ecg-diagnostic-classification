@@ -42,6 +42,25 @@ class Standardize:
 # a per-worker ``worker_init_fn`` reseeds it so the streams are decorrelated.
 
 
+class RandomCrop:
+    """Take a random contiguous window of ``crop_len`` samples.
+
+    Training sees a different sub-window each epoch (a strong ECG regularizer
+    that also enforces invariance to the beat's temporal position); evaluation
+    uses the full signal. The global-pooling head handles the varying length.
+    """
+
+    def __init__(self, crop_len: int) -> None:
+        self.crop_len = crop_len
+
+    def __call__(self, x: np.ndarray) -> np.ndarray:
+        length = x.shape[1]
+        if self.crop_len >= length:
+            return x
+        start = int(np.random.randint(0, length - self.crop_len + 1))
+        return x[:, start : start + self.crop_len]
+
+
 class RandomTemporalShift:
     """Shift the signal in time by up to ``max_shift`` samples, zero-filling."""
 
@@ -97,6 +116,7 @@ class GaussianNoise:
 
 
 _AUGMENTATIONS = {
+    "crop": (RandomCrop, "crop_len"),
     "temporal_shift": (RandomTemporalShift, "max_shift"),
     "scaling": (RandomScaling, "sigma"),
     "lead_mask": (RandomLeadMask, "max_leads"),
