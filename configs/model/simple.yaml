@@ -1,0 +1,7 @@
+name: simple
+encoder:
+  name: simple
+  args:
+    widths: [32, 64, 128]
+head:
+  name: linear

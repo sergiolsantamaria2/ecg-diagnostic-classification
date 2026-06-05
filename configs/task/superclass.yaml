@@ -1,0 +1,4 @@
+name: superclass
+num_classes: 5
+loss:
+  name: bce

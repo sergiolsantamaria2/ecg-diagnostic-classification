@@ -1,0 +1,9 @@
+# @package _global_
+
+# Quick end-to-end smoke run: few epochs, tracked under the "sanity" group.
+trainer:
+  epochs: 3
+
+wandb:
+  group: sanity
+  name: smoke

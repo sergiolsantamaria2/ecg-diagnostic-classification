@@ -1,0 +1,13 @@
+source: ptbxl
+root: data/raw/ptbxl
+sampling_rate: 100
+drop_unlabeled: true
+batch_size: 128
+num_workers: 8
+
+# Augmentations (train only). null disables; off for the baseline.
+augmentations:
+  temporal_shift: null   # max shift in samples
+  scaling: null          # sigma of N(1, sigma)
+  lead_mask: null        # max leads to zero
+  gaussian_noise: null   # noise std (standardized scale)
