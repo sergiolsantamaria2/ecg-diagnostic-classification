@@ -45,3 +45,27 @@ def compute_metrics(
         "per_class_auroc": per_class_auroc,
         "per_class_f1": per_class_f1,
     }
+
+
+def bootstrap_macro_auroc(
+    y_true: np.ndarray,
+    y_score: np.ndarray,
+    class_names: Sequence[str],
+    n_boot: int = 1000,
+    ci: float = 0.95,
+    seed: int = 0,
+) -> tuple[float, float, float]:
+    """Bootstrap mean and confidence interval for macro-AUROC.
+
+    Resamples the evaluation set with replacement ``n_boot`` times and returns
+    ``(mean, lower, upper)`` at the given confidence level.
+    """
+    rng = np.random.default_rng(seed)
+    n = len(y_true)
+    values = [
+        compute_metrics(y_true[idx], y_score[idx], class_names)["macro_auroc"]
+        for idx in (rng.integers(0, n, n) for _ in range(n_boot))
+    ]
+    lower = float(np.nanpercentile(values, 100 * (1 - ci) / 2))
+    upper = float(np.nanpercentile(values, 100 * (1 + ci) / 2))
+    return float(np.nanmean(values)), lower, upper
