@@ -25,7 +25,7 @@ class ConvTokenizer(nn.Module):
         super().__init__()
         channels = [in_channels, *widths, d_model]
         layers: list[nn.Module] = []
-        for a, b in zip(channels[:-1], channels[1:]):
+        for a, b in zip(channels[:-1], channels[1:], strict=True):
             layers += [
                 nn.Conv1d(a, b, kernel_size=7, stride=2, padding=3, bias=False),
                 nn.BatchNorm1d(b),
@@ -44,9 +44,7 @@ class PositionalEncoding(nn.Module):
         super().__init__()
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(max_len).unsqueeze(1).float()
-        div = torch.exp(
-            torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model)
-        )
+        div = torch.exp(torch.arange(0, d_model, 2).float() * (-math.log(10000.0) / d_model))
         pe[:, 0::2] = torch.sin(position * div)
         pe[:, 1::2] = torch.cos(position * div)
         self.register_buffer("pe", pe.unsqueeze(0))
@@ -72,8 +70,13 @@ class CNNTransformerEncoder(nn.Module):
         self.tokenizer = ConvTokenizer(in_channels, d_model, conv_widths)
         self.pos_encoding = PositionalEncoding(d_model)
         layer = nn.TransformerEncoderLayer(
-            d_model=d_model, nhead=n_heads, dim_feedforward=dim_feedforward,
-            dropout=dropout, activation="gelu", batch_first=True, norm_first=True,
+            d_model=d_model,
+            nhead=n_heads,
+            dim_feedforward=dim_feedforward,
+            dropout=dropout,
+            activation="gelu",
+            batch_first=True,
+            norm_first=True,
         )
         self.transformer = nn.TransformerEncoder(
             layer, num_layers=n_layers, enable_nested_tensor=False
@@ -97,6 +100,11 @@ def build_cnn_transformer(
     conv_widths: Sequence[int] = (64, 128, 256),
 ) -> CNNTransformerEncoder:
     return CNNTransformerEncoder(
-        in_channels=in_channels, d_model=d_model, n_heads=n_heads, n_layers=n_layers,
-        dim_feedforward=dim_feedforward, dropout=dropout, conv_widths=conv_widths,
+        in_channels=in_channels,
+        d_model=d_model,
+        n_heads=n_heads,
+        n_layers=n_layers,
+        dim_feedforward=dim_feedforward,
+        dropout=dropout,
+        conv_widths=conv_widths,
     )

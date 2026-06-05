@@ -9,7 +9,9 @@ from sklearn.metrics import f1_score, roc_auc_score
 
 
 def compute_metrics(
-    y_true: np.ndarray, y_score: np.ndarray, class_names: Sequence[str],
+    y_true: np.ndarray,
+    y_score: np.ndarray,
+    class_names: Sequence[str],
     threshold: float = 0.5,
 ) -> dict:
     """Compute macro-AUROC (primary), per-class AUROC and F1.

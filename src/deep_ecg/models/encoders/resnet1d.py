@@ -17,15 +17,18 @@ import torch.nn as nn
 class BasicBlock1d(nn.Module):
     """Two conv-BN layers with a residual shortcut."""
 
-    def __init__(self, in_channels: int, out_channels: int, kernel_size: int,
-                 stride: int = 1) -> None:
+    def __init__(
+        self, in_channels: int, out_channels: int, kernel_size: int, stride: int = 1
+    ) -> None:
         super().__init__()
         pad = kernel_size // 2
-        self.conv1 = nn.Conv1d(in_channels, out_channels, kernel_size,
-                               stride=stride, padding=pad, bias=False)
+        self.conv1 = nn.Conv1d(
+            in_channels, out_channels, kernel_size, stride=stride, padding=pad, bias=False
+        )
         self.bn1 = nn.BatchNorm1d(out_channels)
-        self.conv2 = nn.Conv1d(out_channels, out_channels, kernel_size,
-                               stride=1, padding=pad, bias=False)
+        self.conv2 = nn.Conv1d(
+            out_channels, out_channels, kernel_size, stride=1, padding=pad, bias=False
+        )
         self.bn2 = nn.BatchNorm1d(out_channels)
         self.relu = nn.ReLU(inplace=True)
 
@@ -58,8 +61,14 @@ class ResNet1d(nn.Module):
         super().__init__()
         stem_channels = widths[0]
         self.stem = nn.Sequential(
-            nn.Conv1d(in_channels, stem_channels, stem_kernel, stride=2,
-                      padding=stem_kernel // 2, bias=False),
+            nn.Conv1d(
+                in_channels,
+                stem_channels,
+                stem_kernel,
+                stride=2,
+                padding=stem_kernel // 2,
+                bias=False,
+            ),
             nn.BatchNorm1d(stem_channels),
             nn.ReLU(inplace=True),
             nn.MaxPool1d(3, stride=2, padding=1),
@@ -67,12 +76,10 @@ class ResNet1d(nn.Module):
 
         stages: list[nn.Module] = []
         channels = stem_channels
-        for i, (width, n_blocks) in enumerate(zip(widths, blocks)):
+        for i, (width, n_blocks) in enumerate(zip(widths, blocks, strict=True)):
             stride = 1 if i == 0 else 2  # stem already downsampled before stage 0
             stage = [BasicBlock1d(channels, width, kernel_size, stride=stride)]
-            stage += [
-                BasicBlock1d(width, width, kernel_size) for _ in range(n_blocks - 1)
-            ]
+            stage += [BasicBlock1d(width, width, kernel_size) for _ in range(n_blocks - 1)]
             stages.append(nn.Sequential(*stage))
             channels = width
         self.stages = nn.Sequential(*stages)
@@ -90,6 +97,9 @@ def build_resnet1d(
     stem_kernel: int = 7,
 ) -> ResNet1d:
     return ResNet1d(
-        in_channels=in_channels, widths=widths, blocks=blocks,
-        kernel_size=kernel_size, stem_kernel=stem_kernel,
+        in_channels=in_channels,
+        widths=widths,
+        blocks=blocks,
+        kernel_size=kernel_size,
+        stem_kernel=stem_kernel,
     )

@@ -28,7 +28,9 @@ def main(cfg: DictConfig) -> float:
 
     # -- data --------------------------------------------------------------
     source = build_source(
-        cfg.data.source, root=cfg.data.root, sampling_rate=cfg.data.sampling_rate,
+        cfg.data.source,
+        root=cfg.data.root,
+        sampling_rate=cfg.data.sampling_rate,
         drop_unlabeled=cfg.data.drop_unlabeled,
     )
     augmentations = OmegaConf.to_container(cfg.data.augmentations, resolve=True)
@@ -41,8 +43,12 @@ def main(cfg: DictConfig) -> float:
             kwargs["worker_init_fn"] = seed_worker
             kwargs["generator"] = torch.Generator().manual_seed(cfg.seed)
         return DataLoader(
-            ds, batch_size=cfg.data.batch_size, shuffle=shuffle,
-            num_workers=cfg.data.num_workers, pin_memory=True, drop_last=drop_last,
+            ds,
+            batch_size=cfg.data.batch_size,
+            shuffle=shuffle,
+            num_workers=cfg.data.num_workers,
+            pin_memory=True,
+            drop_last=drop_last,
             **kwargs,
         )
 
@@ -53,7 +59,8 @@ def main(cfg: DictConfig) -> float:
     # -- model / loss / optimizer / scheduler ------------------------------
     model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
     model = build_model(
-        encoder=model_cfg["encoder"], head=model_cfg["head"],
+        encoder=model_cfg["encoder"],
+        head=model_cfg["head"],
         num_classes=cfg.task.num_classes,
     )
     loss_fn = build_loss(cfg.task.loss.name)
@@ -71,14 +78,22 @@ def main(cfg: DictConfig) -> float:
         logger = WandbLogger(
             project=cfg.wandb.project,
             config=OmegaConf.to_container(cfg, resolve=True),
-            group=cfg.wandb.group, name=cfg.wandb.name,
-            tags=list(cfg.wandb.tags), notes=cfg.wandb.notes,
+            group=cfg.wandb.group,
+            name=cfg.wandb.name,
+            tags=list(cfg.wandb.tags),
+            notes=cfg.wandb.notes,
         )
 
     # -- train -------------------------------------------------------------
     trainer = Trainer(
-        model, loss_fn, optimizer, class_names=source.classes, scheduler=scheduler,
-        device=cfg.device, amp=cfg.trainer.amp, ckpt_dir=run_dir / "checkpoints",
+        model,
+        loss_fn,
+        optimizer,
+        class_names=source.classes,
+        scheduler=scheduler,
+        device=cfg.device,
+        amp=cfg.trainer.amp,
+        ckpt_dir=run_dir / "checkpoints",
         logger=logger,
     )
     best_val = trainer.fit(train_loader, val_loader, epochs=cfg.trainer.epochs)
@@ -89,16 +104,20 @@ def main(cfg: DictConfig) -> float:
     test_metrics = trainer.evaluate(test_loader)
     print(f"\nbest val macro-AUROC: {best_val:.4f}")
     print(f"test macro-AUROC    : {test_metrics['macro_auroc']:.4f}")
-    print("test per-class AUROC :",
-          {k: round(v, 4) for k, v in test_metrics["per_class_auroc"].items()})
+    print(
+        "test per-class AUROC :",
+        {k: round(v, 4) for k, v in test_metrics["per_class_auroc"].items()},
+    )
 
     if logger is not None:
-        logger.summary({
-            "best_val_macro_auroc": best_val,
-            "test_macro_auroc": test_metrics["macro_auroc"],
-            "test_macro_f1": test_metrics["macro_f1"],
-            **{f"test_auroc/{k}": v for k, v in test_metrics["per_class_auroc"].items()},
-        })
+        logger.summary(
+            {
+                "best_val_macro_auroc": best_val,
+                "test_macro_auroc": test_metrics["macro_auroc"],
+                "test_macro_f1": test_metrics["macro_f1"],
+                **{f"test_auroc/{k}": v for k, v in test_metrics["per_class_auroc"].items()},
+            }
+        )
         logger.finish()
 
     return test_metrics["macro_auroc"]

@@ -44,9 +44,7 @@ class Trainer:
         self.best_macro_auroc = -float("inf")
 
     def _autocast(self):
-        return torch.autocast(
-            device_type="cuda", dtype=torch.bfloat16, enabled=self.amp
-        )
+        return torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=self.amp)
 
     def _train_epoch(self, loader: DataLoader) -> float:
         self.model.train()
@@ -107,9 +105,7 @@ class Trainer:
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save({"model_state": self.model.state_dict(), **extra}, path)
 
-    def fit(
-        self, train_loader: DataLoader, val_loader: DataLoader, epochs: int
-    ) -> float:
+    def fit(self, train_loader: DataLoader, val_loader: DataLoader, epochs: int) -> float:
         for epoch in range(1, epochs + 1):
             train_loss = self._train_epoch(train_loader)
             metrics = self.evaluate(val_loader)
@@ -120,9 +116,7 @@ class Trainer:
             is_best = macro > self.best_macro_auroc
             if is_best:
                 self.best_macro_auroc = macro
-                self.save_checkpoint(
-                    self.ckpt_dir / "best.pt", epoch=epoch, macro_auroc=macro
-                )
+                self.save_checkpoint(self.ckpt_dir / "best.pt", epoch=epoch, macro_auroc=macro)
 
             record = {
                 "epoch": epoch,

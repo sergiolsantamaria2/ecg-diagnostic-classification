@@ -16,8 +16,18 @@ import numpy as np
 # Standard 12-lead order. Every source returns signals in this lead order so a
 # model trained on one database sees the same channel layout on another.
 CANONICAL_LEADS: tuple[str, ...] = (
-    "I", "II", "III", "aVR", "aVL", "aVF",
-    "V1", "V2", "V3", "V4", "V5", "V6",
+    "I",
+    "II",
+    "III",
+    "aVR",
+    "aVL",
+    "aVF",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
 )
 
 
@@ -28,8 +38,7 @@ class ECGSource(ABC):
     classes: tuple[str, ...]
 
     @abstractmethod
-    def __len__(self) -> int:
-        ...
+    def __len__(self) -> int: ...
 
     @abstractmethod
     def get_signal(self, index: int) -> np.ndarray:

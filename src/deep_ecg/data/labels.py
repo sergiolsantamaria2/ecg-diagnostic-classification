@@ -42,9 +42,7 @@ def multihot(superclasses: Iterable[str]) -> np.ndarray:
     return vec
 
 
-def build_label_table(
-    database_path: str | Path, scp_statements_path: str | Path
-) -> pd.DataFrame:
+def build_label_table(database_path: str | Path, scp_statements_path: str | Path) -> pd.DataFrame:
     """Load ``ptbxl_database.csv`` augmented with parsed codes and superclasses.
 
     Returns a frame indexed by ``ecg_id`` with the original columns plus

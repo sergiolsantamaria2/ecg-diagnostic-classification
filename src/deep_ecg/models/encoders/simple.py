@@ -16,9 +16,7 @@ import torch.nn as nn
 class SimpleConvEncoder(nn.Module):
     """Strided conv blocks mapping ``(B, 12, T)`` to ``(B, C, T')``."""
 
-    def __init__(
-        self, in_channels: int = 12, widths: Sequence[int] = (32, 64, 128)
-    ) -> None:
+    def __init__(self, in_channels: int = 12, widths: Sequence[int] = (32, 64, 128)) -> None:
         super().__init__()
         layers: list[nn.Module] = []
         channels = in_channels

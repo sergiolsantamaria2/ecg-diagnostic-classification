@@ -21,7 +21,11 @@ class WandbLogger:
 
         self._wandb = wandb
         self.run = wandb.init(
-            project=project, group=group, name=name, tags=tags, notes=notes,
+            project=project,
+            group=group,
+            name=name,
+            tags=tags,
+            notes=notes,
             config=config,
         )
 

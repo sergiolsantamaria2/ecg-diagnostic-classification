@@ -11,9 +11,7 @@ from .model import EncoderHeadModel
 __all__ = ["EncoderHeadModel", "build_encoder", "build_head", "build_model"]
 
 
-def build_model(
-    encoder: Mapping, head: Mapping, num_classes: int
-) -> EncoderHeadModel:
+def build_model(encoder: Mapping, head: Mapping, num_classes: int) -> EncoderHeadModel:
     """Assemble an :class:`EncoderHeadModel` from encoder and head specs.
 
     ``encoder`` and ``head`` are mappings with a ``name`` and optional ``args``;
@@ -21,7 +19,9 @@ def build_model(
     """
     enc = build_encoder(encoder["name"], **(encoder.get("args") or {}))
     task_head = build_head(
-        head["name"], in_channels=enc.out_channels, num_classes=num_classes,
+        head["name"],
+        in_channels=enc.out_channels,
+        num_classes=num_classes,
         **(head.get("args") or {}),
     )
     return EncoderHeadModel(enc, task_head)

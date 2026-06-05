@@ -30,7 +30,8 @@ def run_predictions(run_dir: Path, val_loader, test_loader, classes, n_crops):
     cfg = OmegaConf.load(run_dir / ".hydra" / "config.yaml")
     model_cfg = OmegaConf.to_container(cfg.model, resolve=True)
     model = build_model(
-        encoder=model_cfg["encoder"], head=model_cfg["head"],
+        encoder=model_cfg["encoder"],
+        head=model_cfg["head"],
         num_classes=cfg.task.num_classes,
     )
     ckpt = torch.load(run_dir / "checkpoints" / "best.pt", map_location="cpu")
@@ -39,7 +40,9 @@ def run_predictions(run_dir: Path, val_loader, test_loader, classes, n_crops):
 
     crop = cfg.data.augmentations.get("crop")
     if crop:
-        predict = lambda loader: trainer.predict_tta(loader, int(crop), n_crops)
+
+        def predict(loader):
+            return trainer.predict_tta(loader, int(crop), n_crops)
     else:
         predict = trainer.predict
     return predict(val_loader), predict(test_loader)
@@ -52,10 +55,12 @@ def main() -> None:
     parser.add_argument("--out", type=Path, default=Path("ensemble.json"))
     args = parser.parse_args()
 
-    source = build_source("ptbxl", root="data/raw/ptbxl", sampling_rate=100,
-                          drop_unlabeled=True)
+    source = build_source("ptbxl", root="data/raw/ptbxl", sampling_rate=100, drop_unlabeled=True)
     _, val_ds, test_ds, _ = build_datasets(source, augmentations=None)
-    loader = lambda ds: DataLoader(ds, batch_size=256, num_workers=8, pin_memory=True)
+
+    def loader(ds):
+        return DataLoader(ds, batch_size=256, num_workers=8, pin_memory=True)
+
     val_loader, test_loader = loader(val_ds), loader(test_ds)
 
     val_scores, test_scores = [], []
@@ -66,8 +71,10 @@ def main() -> None:
         )
         val_scores.append(s_val)
         test_scores.append(s_test)
-        print(f"{run_dir.name}: test macro-AUROC "
-              f"{compute_metrics(y_test, s_test, source.classes)['macro_auroc']:.4f}")
+        print(
+            f"{run_dir.name}: test macro-AUROC "
+            f"{compute_metrics(y_test, s_test, source.classes)['macro_auroc']:.4f}"
+        )
 
     s_val_mean = np.mean(val_scores, axis=0)
     s_test_mean = np.mean(test_scores, axis=0)
@@ -77,15 +84,22 @@ def main() -> None:
 
     print(f"\nensemble of {len(args.run_dirs)} runs")
     print(f"ensemble test macro-AUROC: {metrics['macro_auroc']:.4f}")
-    print("per-class AUROC          :",
-          {k: round(v, 4) for k, v in metrics["per_class_auroc"].items()})
+    print(
+        "per-class AUROC          :",
+        {k: round(v, 4) for k, v in metrics["per_class_auroc"].items()},
+    )
 
-    args.out.write_text(json.dumps({
-        "runs": [str(d) for d in args.run_dirs],
-        "macro_auroc": metrics["macro_auroc"],
-        "per_class_auroc": metrics["per_class_auroc"],
-        "per_class_report": report,
-    }, indent=2))
+    args.out.write_text(
+        json.dumps(
+            {
+                "runs": [str(d) for d in args.run_dirs],
+                "macro_auroc": metrics["macro_auroc"],
+                "per_class_auroc": metrics["per_class_auroc"],
+                "per_class_report": report,
+            },
+            indent=2,
+        )
+    )
     print(f"saved {args.out}")
 
 

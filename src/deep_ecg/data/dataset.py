@@ -52,9 +52,7 @@ def split_indices_by_fold(
     return train, val, test
 
 
-def fit_lead_stats(
-    source: ECGSource, indices: Sequence[int]
-) -> tuple[np.ndarray, np.ndarray]:
+def fit_lead_stats(source: ECGSource, indices: Sequence[int]) -> tuple[np.ndarray, np.ndarray]:
     """Per-lead mean and std over ``indices`` (one pass, no leakage)."""
     n_leads = source.get_signal(int(indices[0])).shape[0]
     total = np.zeros(n_leads, dtype=np.float64)
@@ -83,9 +81,7 @@ def build_datasets(
     deterministic standardized signal. Returns the three datasets and the
     fitted lead statistics (the reproducibility artifact).
     """
-    train_idx, val_idx, test_idx = split_indices_by_fold(
-        source, train_folds, val_fold, test_fold
-    )
+    train_idx, val_idx, test_idx = split_indices_by_fold(source, train_folds, val_fold, test_fold)
     mean, std = fit_lead_stats(source, train_idx)
     standardize = Standardize(mean, std)
     train_tf = Compose([standardize, *build_augmentations(augmentations)])

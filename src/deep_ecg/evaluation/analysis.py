@@ -8,7 +8,9 @@ import numpy as np
 
 
 def tune_thresholds(
-    y_true: np.ndarray, y_score: np.ndarray, class_names: Sequence[str],
+    y_true: np.ndarray,
+    y_score: np.ndarray,
+    class_names: Sequence[str],
     grid: np.ndarray | None = None,
 ) -> dict[str, float]:
     """Per-class decision threshold maximizing F1.
@@ -35,7 +37,9 @@ def tune_thresholds(
 
 
 def per_class_report(
-    y_true: np.ndarray, y_score: np.ndarray, class_names: Sequence[str],
+    y_true: np.ndarray,
+    y_score: np.ndarray,
+    class_names: Sequence[str],
     thresholds: Mapping[str, float] | None = None,
 ) -> list[dict]:
     """Per-class precision/recall/F1 and TP/FP/FN counts at the given thresholds."""
@@ -49,15 +53,19 @@ def per_class_report(
         precision = tp / (tp + fp) if (tp + fp) else 0.0
         recall = tp / (tp + fn) if (tp + fn) else 0.0
         f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0.0
-        rows.append({
-            "class": name,
-            "threshold": round(t, 3),
-            "precision": round(precision, 4),
-            "recall": round(recall, 4),
-            "f1": round(f1, 4),
-            "support": int(np.sum(y_true[:, i] == 1)),
-            "tp": tp, "fp": fp, "fn": fn,
-        })
+        rows.append(
+            {
+                "class": name,
+                "threshold": round(t, 3),
+                "precision": round(precision, 4),
+                "recall": round(recall, 4),
+                "f1": round(f1, 4),
+                "support": int(np.sum(y_true[:, i] == 1)),
+                "tp": tp,
+                "fp": fp,
+                "fn": fn,
+            }
+        )
     return rows
 
 
