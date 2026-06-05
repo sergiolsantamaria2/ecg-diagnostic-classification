@@ -27,6 +27,7 @@ class WandbLogger:
             tags=tags,
             notes=notes,
             config=config,
+            settings=wandb.Settings(init_timeout=180),
         )
 
     def __call__(self, record: dict[str, Any]) -> None:
