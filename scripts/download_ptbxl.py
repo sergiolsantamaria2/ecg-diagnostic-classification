@@ -24,40 +24,62 @@ EXTRACTED_DIRNAME = (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def download_with_resume(url: str, dest: Path, retries: int = 100,
+def _remote_size(url: str) -> int:
+    """Total file size in bytes, via HEAD with a ranged-GET fallback."""
+    try:
+        with urllib.request.urlopen(
+            urllib.request.Request(url, method="HEAD"), timeout=60
+        ) as resp:
+            length = resp.headers.get("Content-Length")
+            if length:
+                return int(length)
+    except Exception:  # noqa: BLE001 — fall back to a ranged GET
+        pass
+    req = urllib.request.Request(url, headers={"Range": "bytes=0-0"})
+    with urllib.request.urlopen(req, timeout=60) as resp:
+        # Content-Range: "bytes 0-0/<total>"
+        return int(resp.headers["Content-Range"].split("/")[-1])
+
+
+def download_with_resume(url: str, dest: Path, retries: int = 200,
                          chunk: int = 1 << 20) -> None:
-    """Stream ``url`` to ``dest``, resuming a partial ``.part`` file on failure."""
+    """Stream ``url`` to ``dest``, resuming until the full size is on disk.
+
+    A clean EOF before the expected size (a dropped connection) is treated as a
+    partial download and retried with an HTTP Range request, not as completion.
+    The file is only renamed into place once every byte has been received.
+    """
     tmp = dest.with_suffix(dest.suffix + ".part")
+    total = _remote_size(url)
+    print(f"  expected size: {total / 1e6:.0f} MB")
+
     for attempt in range(1, retries + 1):
         pos = tmp.stat().st_size if tmp.exists() else 0
-        headers = {"Range": f"bytes={pos}-"} if pos else {}
+        if pos >= total:
+            break
         try:
-            req = urllib.request.Request(url, headers=headers)
+            req = urllib.request.Request(url, headers={"Range": f"bytes={pos}-"})
             with urllib.request.urlopen(req, timeout=60) as resp:
-                # If the server ignores Range (status 200) restart from zero.
-                if pos and resp.status != 206:
-                    pos, tmp_mode = 0, "wb"
-                else:
-                    tmp_mode = "ab" if pos else "wb"
-                total = pos + int(resp.headers.get("Content-Length", 0))
-                with open(tmp, tmp_mode) as f:
+                with open(tmp, "ab" if pos else "wb") as f:
                     while True:
                         block = resp.read(chunk)
                         if not block:
                             break
                         f.write(block)
                         pos += len(block)
-                        pct = f"{100 * pos / total:.1f}%" if total else "?"
-                        print(f"\r  {pos / 1e6:7.0f} MB ({pct})", end="", flush=True)
+                        print(f"\r  {pos / 1e6:7.0f} MB ({100 * pos / total:.1f}%)",
+                              end="", flush=True)
             print()
-            tmp.rename(dest)
-            return
         except Exception as exc:  # noqa: BLE001 — any network error is retriable
             got = tmp.stat().st_size / 1e6 if tmp.exists() else 0
             print(f"\n  [attempt {attempt}] {type(exc).__name__}: {exc} "
                   f"— resuming from {got:.0f} MB")
             time.sleep(3)
-    raise RuntimeError(f"download failed after {retries} attempts")
+
+    size = tmp.stat().st_size if tmp.exists() else 0
+    if size != total:
+        raise RuntimeError(f"incomplete download: {size}/{total} bytes")
+    tmp.rename(dest)
 
 
 def extract(zip_path: Path, raw_dir: Path) -> None:
