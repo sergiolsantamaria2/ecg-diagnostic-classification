@@ -11,4 +11,8 @@ def build_head(name: str, **kwargs) -> nn.Module:
         from .linear import build_linear
 
         return build_linear(**kwargs)
+    if name == "reconstruction":
+        from .reconstruction import build_reconstruction
+
+        return build_reconstruction(**kwargs)
     raise ValueError(f"unknown head: {name!r}")

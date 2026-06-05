@@ -1,0 +1,27 @@
+defaults:
+  - data: ptbxl
+  - model: resnet1d
+  - ssl: masked
+  - trainer: pretrain
+  - _self_
+
+seed: 42
+device: cuda
+
+# Pretraining ignores labels, so unlabeled records are kept in the corpus.
+data:
+  drop_unlabeled: false
+
+wandb:
+  enabled: true
+  project: deep-ecg
+  group: pretrain
+  name: null
+  tags: []
+  notes: ""
+
+hydra:
+  job:
+    chdir: false
+  run:
+    dir: outputs/${now:%Y-%m-%d_%H-%M-%S}

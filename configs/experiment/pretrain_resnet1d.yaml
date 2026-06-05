@@ -1,0 +1,10 @@
+# @package _global_
+
+defaults:
+  - override /model: resnet1d
+
+wandb:
+  group: pretrain
+  name: masked_resnet1d
+  tags: [pretrain, masked, resnet1d]
+  notes: Masked reconstruction pretraining, ResNet1D encoder

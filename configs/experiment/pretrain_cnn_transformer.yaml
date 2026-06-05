@@ -1,0 +1,15 @@
+# @package _global_
+
+defaults:
+  - override /model: cnn_transformer
+
+ssl:
+  decoder:
+    args:
+      n_upsample: 4   # encoder downsamples x16 (vs x32 for ResNet1D)
+
+wandb:
+  group: pretrain
+  name: masked_cnn_transformer
+  tags: [pretrain, masked, cnn_transformer]
+  notes: Masked reconstruction pretraining, CNN+Transformer encoder

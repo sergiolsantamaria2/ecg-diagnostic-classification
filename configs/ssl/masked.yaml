@@ -1,0 +1,9 @@
+name: masked
+mask_ratio: 0.5        # fraction of time masked
+mask_span: 50          # masked span length in samples (0.5 s at 100 Hz)
+learnable_token: true  # learnable per-lead fill value for masked spans
+decoder:
+  name: reconstruction
+  args:
+    n_upsample: 5       # x2 upsampling stages; matches the encoder downsampling
+    width: 256
