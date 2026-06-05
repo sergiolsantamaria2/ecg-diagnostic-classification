@@ -45,44 +45,46 @@ of Strodthoff et al. as reference.
 
 ### Results
 
-AUROC on the held-out test fold (fold 10), best checkpoint by validation
-macro-AUROC. Both models train for 150 epochs with AdamW, a cosine schedule and
-augmentation (temporal shift, scaling, lead masking, Gaussian noise).
+Per-class AUROC on the held-out test fold (fold 10). The headline model is an
+ensemble of both architectures across two augmentation regimes; it matches the
+PTB-XL benchmark.
 
-| Model | Params | macro-AUROC | NORM | MI | STTC | CD | HYP |
-|-------|:------:|:-----------:|:----:|:--:|:----:|:--:|:---:|
-| ResNet1D (ResNet18-scale) | 6.3M | **0.923** | 0.946 | 0.930 | 0.931 | 0.917 | 0.892 |
-| CNN + Transformer | 2.9M | 0.920 | 0.941 | 0.925 | 0.932 | 0.918 | 0.885 |
+| Model | macro-AUROC | NORM | MI | STTC | CD | HYP |
+|-------|:-----------:|:----:|:--:|:----:|:--:|:---:|
+| ResNet1D (ResNet18-scale, 6.3M) | 0.923 | 0.946 | 0.930 | 0.931 | 0.917 | 0.892 |
+| CNN + Transformer (2.9M, crop + TTA) | 0.923 | 0.941 | 0.925 | 0.932 | 0.918 | 0.885 |
+| **Ensemble** | **0.928** | 0.949 | 0.935 | 0.939 | 0.926 | 0.893 |
 
-The PTB-XL benchmark of Strodthoff et al. reports a best macro-AUROC of ≈0.93 on
-the diagnostic superclass task; both baselines reach that level.
+Strodthoff et al. report a best macro-AUROC of ≈0.93 on the diagnostic
+superclass task; the ensemble reaches that level.
 
-### Effect of augmentation
+### Path to the benchmark
 
-| Model | no augmentation | augmentation | best epoch (no aug → aug) |
-|-------|:---------------:|:------------:|:-------------------------:|
-| ResNet1D | 0.922 | **0.923** | 10 → 22 |
-| CNN + Transformer | 0.914 | **0.920** | 5 → 22 |
+Single models plateau around 0.92; the gap closes through augmentation,
+test-time crop augmentation and ensembling.
 
-Without augmentation both models overfit early (training loss →0, validation
-AUROC declining) and peak within the first ~10 epochs. Augmentation delays
-overfitting — the best epoch roughly doubles — and lifts both models to the
-benchmark level.
+| Step | ResNet1D | CNN + Transformer |
+|------|:--------:|:-----------------:|
+| no augmentation (50 ep) | 0.922 | 0.914 |
+| + augmentation (150 ep) | 0.923 | 0.920 |
+| + random crop & TTA (200 ep) | 0.922 | 0.923 |
+| **ensemble of the four runs** | **0.928** | |
 
 ### Findings
 
-- The residual CNN edges the CNN+Transformer (0.923 vs 0.920). On ~17k labelled
-  records the Transformer's weaker inductive bias offers little advantage at
-  this scale, though the gap is small.
-- Augmentation helps the Transformer most (+0.006 vs +0.001 test macro-AUROC),
-  narrowing the gap from 0.009 to 0.003 — consistent with the more data-hungry
-  model gaining more from a data multiplier.
-- HYP is the hardest superclass for both (AUROC ≈0.89, F1 ≈0.59), consistent
-  with its low prevalence (12%) and amplitude-based definition, which per-lead
-  standardization partially flattens.
-- The early-overfitting regime — both models saturate ~17k labels quickly —
-  motivates studying label efficiency and representation learning beyond the
-  supervised baseline.
+- Augmentation delays overfitting: without it both models peak within ~10
+  epochs and then memorize (training loss →0, validation AUROC declining); with
+  it the best epoch roughly doubles (to ~22).
+- It helps the CNN+Transformer most — under strong augmentation with random
+  cropping the Transformer overtakes the ResNet — consistent with the more
+  data-hungry, lower-inductive-bias model gaining more from a data multiplier.
+- Training on random 5 s crops requires matching test-time crop averaging (TTA);
+  evaluating the cropped model on the full 10 s signal underperforms.
+- HYP is the hardest superclass (AUROC ≈0.89, F1 ≈0.57): lowest prevalence
+  (12%) and amplitude-based, which per-lead standardization partially flattens.
+- Single models sit ~0.005 below the benchmark and only reach it in ensemble;
+  this saturation of ~17k labels motivates studying label efficiency and
+  representation learning beyond the supervised baseline.
 
 ## Project structure
 
@@ -103,10 +105,12 @@ uv sync                                          # environment from pyproject + 
 uv run python scripts/download_ptbxl.py          # download + extract PTB-XL
 
 uv run python train.py +experiment=sanity                  # end-to-end smoke run
-uv run python train.py +experiment=baseline_resnet1d       # ResNet1D baseline
-uv run python train.py +experiment=baseline_cnn_transformer  # CNN+Transformer baseline
+uv run python train.py +experiment=resnet1d_aug            # ResNet1D, augmentation
+uv run python train.py +experiment=cnn_transformer_crop    # Transformer, crop augmentation
 
-uv run python scripts/evaluate.py <run_dir>      # test metrics + per-class report
+uv run python scripts/evaluate.py <run_dir>                # test metrics + per-class report
+uv run python scripts/evaluate.py <run_dir> --tta-crop-len 500   # with test-time crop averaging
+uv run python scripts/ensemble.py <run_dir> <run_dir> ...  # ensemble (auto-TTA for cropped runs)
 ```
 
 Experiments are config-driven (Hydra), tracked in Weights & Biases, and seeded
