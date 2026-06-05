@@ -1,0 +1,13 @@
+# @package _global_
+
+defaults:
+  - override /model: resnet1d
+
+trainer:
+  epochs: 50
+
+wandb:
+  group: baseline
+  name: resnet1d
+  tags: [baseline, resnet1d]
+  notes: ResNet18-1d baseline on PTB-XL 5-superclass

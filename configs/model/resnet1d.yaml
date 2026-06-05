@@ -1,0 +1,9 @@
+name: resnet1d
+encoder:
+  name: resnet1d
+  args:
+    widths: [64, 128, 256, 512]
+    blocks: [2, 2, 2, 2]
+    kernel_size: 5
+head:
+  name: linear

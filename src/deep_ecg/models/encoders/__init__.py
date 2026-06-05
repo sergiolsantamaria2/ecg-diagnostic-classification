@@ -11,4 +11,8 @@ def build_encoder(name: str, **kwargs) -> nn.Module:
         from .simple import build_simple
 
         return build_simple(**kwargs)
+    if name == "resnet1d":
+        from .resnet1d import build_resnet1d
+
+        return build_resnet1d(**kwargs)
     raise ValueError(f"unknown encoder: {name!r}")
