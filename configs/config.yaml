@@ -8,6 +8,11 @@ defaults:
 seed: 42
 device: cuda
 
+# Downstream knobs (no-ops for the from-scratch baseline).
+model:
+  pretrained_ckpt: null    # path to an SSL checkpoint to load the encoder from
+  freeze_encoder: false    # true = linear probe (frozen encoder + linear head)
+
 wandb:
   enabled: true
   project: deep-ecg

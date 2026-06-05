@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader
 
 from deep_ecg.data.dataset import build_datasets
 from deep_ecg.data.sources import build_source
-from deep_ecg.models import build_model
+from deep_ecg.models import build_model, freeze_encoder
 from deep_ecg.training.losses import build_loss
 from deep_ecg.training.schedulers import build_scheduler
 from deep_ecg.training.trainer import Trainer
@@ -34,7 +34,13 @@ def main(cfg: DictConfig) -> float:
         drop_unlabeled=cfg.data.drop_unlabeled,
     )
     augmentations = OmegaConf.to_container(cfg.data.augmentations, resolve=True)
-    train_ds, val_ds, test_ds, stats = build_datasets(source, augmentations=augmentations)
+    train_ds, val_ds, test_ds, stats = build_datasets(
+        source,
+        augmentations=augmentations,
+        label_fraction=cfg.data.label_fraction,
+        subsample_seed=cfg.data.subsample_seed,
+    )
+    print(f"labeled train size: {len(train_ds)} (fraction {cfg.data.label_fraction})")
     np.savez(run_dir / "lead_stats.npz", **stats)
 
     def loader(ds, shuffle, drop_last=False):
@@ -63,9 +69,20 @@ def main(cfg: DictConfig) -> float:
         head=model_cfg["head"],
         num_classes=cfg.task.num_classes,
     )
+
+    # Optionally start from a self-supervised encoder and freeze it (linear probe).
+    if cfg.model.pretrained_ckpt:
+        ckpt = torch.load(cfg.model.pretrained_ckpt, map_location="cpu")
+        model.encoder.load_state_dict(ckpt["encoder_state"])
+        print(f"loaded pretrained encoder from {cfg.model.pretrained_ckpt}")
+    if cfg.model.freeze_encoder:
+        freeze_encoder(model)
+        print("encoder frozen (linear probe)")
+
     loss_fn = build_loss(cfg.task.loss.name)
+    params = [p for p in model.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(
-        model.parameters(), lr=cfg.trainer.lr, weight_decay=cfg.trainer.weight_decay
+        params, lr=cfg.trainer.lr, weight_decay=cfg.trainer.weight_decay
     )
     sched_cfg = OmegaConf.to_container(cfg.trainer.scheduler, resolve=True)
     scheduler = build_scheduler(sched_cfg["name"], optimizer, **(sched_cfg.get("args") or {}))

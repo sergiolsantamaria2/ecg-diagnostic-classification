@@ -68,21 +68,60 @@ def fit_lead_stats(source: ECGSource, indices: Sequence[int]) -> tuple[np.ndarra
     return mean.astype(np.float32), std.astype(np.float32)
 
 
+def subsample_indices(
+    indices: np.ndarray, labels: np.ndarray, fraction: float, seed: int
+) -> np.ndarray:
+    """Random subset of ``indices`` keeping a ``fraction`` of them.
+
+    Selection is reproducible from ``seed``. Every class is guaranteed at least
+    one positive: any class absent from the random draw has one of its positives
+    swapped in (replacing a random non-guaranteed pick), so the data-efficiency
+    regimes never train without a class present.
+    """
+    if fraction >= 1.0:
+        return indices
+    rng = np.random.default_rng(seed)
+    n = max(1, round(len(indices) * fraction))
+    perm = rng.permutation(len(indices))
+    chosen = set(perm[:n].tolist())
+    guaranteed: set[int] = set()
+    for c in range(labels.shape[1]):
+        if any(labels[i, c] > 0 for i in chosen):
+            continue
+        donors = [j for j in range(len(indices)) if labels[j, c] > 0 and j not in chosen]
+        if not donors:
+            continue
+        removable = list(chosen - guaranteed)
+        if removable:  # keep the subset size fixed by swapping one out
+            chosen.discard(int(rng.choice(removable)))
+        new = int(rng.choice(donors))
+        chosen.add(new)
+        guaranteed.add(new)
+    return np.sort(indices[np.fromiter(chosen, dtype=np.int64)])
+
+
 def build_datasets(
     source: ECGSource,
     augmentations: dict | None = None,
     train_folds: Sequence[int] = DEFAULT_TRAIN_FOLDS,
     val_fold: int = DEFAULT_VAL_FOLD,
     test_fold: int = DEFAULT_TEST_FOLD,
+    label_fraction: float = 1.0,
+    subsample_seed: int = 0,
 ) -> tuple[ECGDataset, ECGDataset, ECGDataset, dict[str, np.ndarray]]:
     """Build train/val/test datasets with the standardizer fit on train.
 
     Augmentations apply to the training set only; validation and test see the
-    deterministic standardized signal. Returns the three datasets and the
-    fitted lead statistics (the reproducibility artifact).
+    deterministic standardized signal. Lead statistics are fit on the full train
+    folds (they need no labels), then the labeled training set is optionally
+    subsampled to ``label_fraction`` for the data-efficiency study. Returns the
+    three datasets and the fitted lead statistics (the reproducibility artifact).
     """
     train_idx, val_idx, test_idx = split_indices_by_fold(source, train_folds, val_fold, test_fold)
     mean, std = fit_lead_stats(source, train_idx)
+    if label_fraction < 1.0:
+        train_labels = np.stack([source.get_labels(int(i)) for i in train_idx])
+        train_idx = subsample_indices(train_idx, train_labels, label_fraction, subsample_seed)
     standardize = Standardize(mean, std)
     train_tf = Compose([standardize, *build_augmentations(augmentations)])
     eval_tf = Compose([standardize])

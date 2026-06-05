@@ -1,0 +1,10 @@
+# @package _global_
+
+# Supervised from scratch at a given label fraction. Compose with a model and a
+# fraction, e.g. +experiment=scratch model=resnet1d data.label_fraction=0.1
+
+wandb:
+  group: data_efficiency
+  name: scratch_${model.name}_f${data.label_fraction}_s${data.subsample_seed}
+  tags: [data_efficiency, scratch]
+  notes: Supervised from scratch at a label fraction

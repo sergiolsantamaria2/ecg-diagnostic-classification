@@ -1,0 +1,15 @@
+# @package _global_
+
+# Linear probe on a frozen SSL-pretrained encoder at a given label fraction.
+# Requires a pretrained checkpoint, e.g. +experiment=linear_probe model=resnet1d
+# data.label_fraction=0.1 model.pretrained_ckpt=outputs/<run>/checkpoints/best.pt
+
+model:
+  pretrained_ckpt: ???
+  freeze_encoder: true
+
+wandb:
+  group: data_efficiency
+  name: linprobe_${model.name}_f${data.label_fraction}_s${data.subsample_seed}
+  tags: [data_efficiency, linear_probe]
+  notes: Linear probe on frozen SSL encoder at a label fraction

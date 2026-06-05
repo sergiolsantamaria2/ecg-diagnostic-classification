@@ -5,6 +5,10 @@ drop_unlabeled: true
 batch_size: 128
 num_workers: 8
 
+# Data-efficiency study: keep this fraction of the labeled train set (1.0 = all).
+label_fraction: 1.0
+subsample_seed: 0
+
 # Augmentations (train only). null disables; off for the baseline.
 augmentations:
   crop: null             # random window length in samples (eval uses full signal)

@@ -8,7 +8,21 @@ from .encoders import build_encoder
 from .heads import build_head
 from .model import EncoderHeadModel
 
-__all__ = ["EncoderHeadModel", "build_encoder", "build_head", "build_model"]
+__all__ = ["EncoderHeadModel", "build_encoder", "build_head", "build_model", "freeze_encoder"]
+
+
+def freeze_encoder(model: EncoderHeadModel) -> EncoderHeadModel:
+    """Freeze the encoder for linear probing.
+
+    Disables encoder gradients and holds it in eval mode so batch-norm running
+    statistics stay fixed; overriding ``train`` keeps it in eval even when the
+    trainer puts the whole model in train mode each epoch.
+    """
+    for p in model.encoder.parameters():
+        p.requires_grad = False
+    model.encoder.eval()
+    model.encoder.train = lambda mode=True: model.encoder
+    return model
 
 
 def build_model(encoder: Mapping, head: Mapping, num_classes: int) -> EncoderHeadModel:
