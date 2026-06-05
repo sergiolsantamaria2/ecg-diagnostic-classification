@@ -1,0 +1,12 @@
+name: cnn_transformer
+encoder:
+  name: cnn_transformer
+  args:
+    d_model: 256
+    n_heads: 8
+    n_layers: 4
+    dim_feedforward: 512
+    dropout: 0.1
+    conv_widths: [64, 128, 256]
+head:
+  name: linear

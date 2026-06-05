@@ -15,4 +15,8 @@ def build_encoder(name: str, **kwargs) -> nn.Module:
         from .resnet1d import build_resnet1d
 
         return build_resnet1d(**kwargs)
+    if name == "cnn_transformer":
+        from .cnn_transformer import build_cnn_transformer
+
+        return build_cnn_transformer(**kwargs)
     raise ValueError(f"unknown encoder: {name!r}")

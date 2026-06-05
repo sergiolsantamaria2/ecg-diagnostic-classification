@@ -1,0 +1,13 @@
+# @package _global_
+
+defaults:
+  - override /model: cnn_transformer
+
+trainer:
+  epochs: 50
+
+wandb:
+  group: baseline
+  name: cnn_transformer
+  tags: [baseline, cnn_transformer]
+  notes: CNN+Transformer baseline on PTB-XL 5-superclass
