@@ -29,6 +29,9 @@ results suggest rather than fixed in advance.
 - **Splits:** official stratified folds (`strat_fold`). Train = folds 1–8,
   validation = fold 9, test = fold 10.
 
+Exploratory analysis (class prevalence, co-occurrence, per-lead scale, example
+recordings) is in [`notebooks/eda.ipynb`](notebooks/eda.ipynb).
+
 ## Models
 
 Two architectures under comparable conditions:
@@ -56,7 +59,8 @@ PTB-XL benchmark.
 | **Ensemble** | **0.928** | 0.949 | 0.935 | 0.939 | 0.926 | 0.893 |
 
 Strodthoff et al. report a best macro-AUROC of ≈0.93 on the diagnostic
-superclass task; the ensemble reaches that level.
+superclass task; the ensemble reaches that level (0.928, bootstrap 95% CI
+0.921–0.936).
 
 ### Path to the benchmark
 
@@ -94,8 +98,11 @@ src/deep_ecg/
   data/         ECGSource adapter, datasets, transforms, SCP→superclass labels
   models/       encoders, heads, EncoderHeadModel (encoder ⟂ head)
   training/     custom trainer, losses, schedulers
-  evaluation/   metrics, error analysis
-scripts/        dataset download and utilities
+  evaluation/   metrics, error analysis, bootstrap CI
+  utils/        seeding, W&B logging
+train.py        Hydra training entrypoint
+scripts/        download_ptbxl, evaluate, ensemble
+notebooks/      exploratory analysis
 ```
 
 ## Setup
@@ -114,5 +121,17 @@ uv run python scripts/ensemble.py <run_dir> <run_dir> ...  # ensemble (auto-TTA 
 ```
 
 Experiments are config-driven (Hydra), tracked in Weights & Biases, and seeded
-for reproducibility. Any component swaps with a single override, e.g.
+for reproducibility (fixed seed, per-worker augmentation RNG, pinned `uv.lock`,
+official folds). Any component swaps with a single override, e.g.
 `train.py model=cnn_transformer trainer.epochs=30 data.augmentations.gaussian_noise=0.1`.
+
+## Data and references
+
+PTB-XL is distributed by PhysioNet under the Creative Commons Attribution 4.0
+(CC-BY 4.0) license and is downloaded by `scripts/download_ptbxl.py`; it is not
+redistributed in this repository.
+
+- Wagner et al. *PTB-XL, a large publicly available electrocardiography
+  dataset.* Scientific Data, 2020.
+- Strodthoff et al. *Deep learning for ECG analysis: benchmarks and insights
+  from PTB-XL.* IEEE JBHI, 2021.
