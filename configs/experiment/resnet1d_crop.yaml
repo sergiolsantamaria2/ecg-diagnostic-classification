@@ -1,0 +1,20 @@
+# @package _global_
+
+defaults:
+  - override /model: resnet1d
+
+trainer:
+  epochs: 200
+
+data:
+  augmentations:
+    crop: 500            # random 5 s window (eval uses the full 10 s)
+    scaling: 0.15
+    lead_mask: 2
+    gaussian_noise: 0.15
+
+wandb:
+  group: baseline
+  name: resnet1d_crop
+  tags: [baseline, resnet1d, crop]
+  notes: ResNet1D with random crop + strong augmentation, 200 epochs
