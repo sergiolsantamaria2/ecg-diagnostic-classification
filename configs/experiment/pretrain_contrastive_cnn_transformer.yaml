@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - override /model: cnn_transformer
+  - override /ssl: contrastive
+
+data:
+  batch_size: 256   # more negatives for the contrastive loss
+
+wandb:
+  group: pretrain
+  name: contrastive_cnn_transformer
+  tags: [pretrain, contrastive, cnn_transformer]
+  notes: Contrastive (CLOCS/NT-Xent) pretraining, CNN+Transformer encoder
