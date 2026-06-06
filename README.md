@@ -68,6 +68,28 @@ seeds.
 - A frozen encoder (linear probe) still trails end-to-end training for both
   pretexts — the diagnostic task needs the encoder to adapt.
 
+## Pretraining checkpoint selection
+
+The pretext loss is an imperfect proxy for downstream quality, so pretraining is
+monitored online: every 10 epochs a linear probe (frozen encoder, validation
+fold) measures the encoder's diagnostic AUROC, which selects the checkpoint and
+early-stops training.
+
+![Pretraining diagnostic](docs/probe_diagnostic.png)
+
+Masked reconstruction tracks the probe monotonically — loss and downstream
+quality improve together. The contrastive probe instead peaks around epoch 70 and
+then declines while the NT-Xent loss keeps falling, the objective over-optimizing
+augmentation invariances past the point of useful representations.
+
+Selecting the checkpoint by the probe rather than by the pretext loss did not
+change the downstream results, however — within ~0.1–0.5 points on the test fold,
+in either direction. The validation-probe divergence is small in absolute terms
+and does not transfer to the test set, and fine-tuning re-adapts the encoder
+enough to absorb it. The pretext loss is therefore an adequate selector here; the
+online probe earns its place as a diagnostic and an early-stopping signal (it
+halted the contrastive run at epoch 100 rather than 200).
+
 ## Task and data
 
 PTB-XL (PhysioNet): ~21.8k 10-second 12-lead ECGs at 100 Hz. SCP codes are mapped
