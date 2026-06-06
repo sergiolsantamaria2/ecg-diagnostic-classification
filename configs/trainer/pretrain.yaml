@@ -1,4 +1,4 @@
-epochs: 100
+epochs: 200
 lr: 1.0e-3
 weight_decay: 1.0e-4
 amp: true
@@ -6,3 +6,12 @@ scheduler:
   name: cosine
   args:
     T_max: ${trainer.epochs}
+
+# Online downstream probe: select the checkpoint and early-stop by a cheap
+# linear-probe macro-AUROC instead of the pretext loss alone.
+monitor:
+  enabled: true
+  eval_every: 10        # epochs between probe evaluations
+  patience: 3           # stop after this many probes without improvement
+  probe_epochs: 300     # iterations to fit the linear probe on frozen features
+  probe_lr: 1.0e-2
