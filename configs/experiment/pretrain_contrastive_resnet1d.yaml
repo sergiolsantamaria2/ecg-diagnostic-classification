@@ -1,0 +1,14 @@
+# @package _global_
+
+defaults:
+  - override /model: resnet1d
+  - override /ssl: contrastive
+
+data:
+  batch_size: 256   # more negatives for the contrastive loss
+
+wandb:
+  group: pretrain
+  name: contrastive_resnet1d
+  tags: [pretrain, contrastive, resnet1d]
+  notes: Contrastive (CLOCS/NT-Xent) pretraining, ResNet1D encoder

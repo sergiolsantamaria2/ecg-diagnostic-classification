@@ -9,7 +9,7 @@ import torch
 from torch.utils.data import Dataset
 
 from .sources.base import ECGSource
-from .transforms import Compose, Standardize, Transform, build_augmentations
+from .transforms import Compose, RandomCrop, Standardize, Transform, build_augmentations
 
 DEFAULT_TRAIN_FOLDS = (1, 2, 3, 4, 5, 6, 7, 8)
 DEFAULT_VAL_FOLD = 9
@@ -36,6 +36,34 @@ class ECGDataset(Dataset):
             signal = self.transform(signal)
         label = self.source.get_labels(idx)
         return torch.from_numpy(np.ascontiguousarray(signal)), torch.from_numpy(label)
+
+
+class TwoViewDataset(Dataset):
+    """Yield two independently transformed views of each record.
+
+    Used for contrastive pretraining: applying the same stochastic view
+    transform (crop + augmentations) twice produces a positive pair from one
+    record. Labels are not returned — the objective is self-supervised.
+    """
+
+    def __init__(
+        self, source: ECGSource, indices: Sequence[int], view_transform: Transform
+    ) -> None:
+        self.source = source
+        self.indices = np.asarray(indices, dtype=np.int64)
+        self.view_transform = view_transform
+
+    def __len__(self) -> int:
+        return len(self.indices)
+
+    def __getitem__(self, i: int) -> tuple[torch.Tensor, torch.Tensor]:
+        signal = self.source.get_signal(int(self.indices[i]))
+        view1 = self.view_transform(signal)
+        view2 = self.view_transform(signal)
+        return (
+            torch.from_numpy(np.ascontiguousarray(view1)),
+            torch.from_numpy(np.ascontiguousarray(view2)),
+        )
 
 
 def split_indices_by_fold(
@@ -129,5 +157,31 @@ def build_datasets(
         ECGDataset(source, train_idx, train_tf),
         ECGDataset(source, val_idx, eval_tf),
         ECGDataset(source, test_idx, eval_tf),
+        {"mean": mean, "std": std},
+    )
+
+
+def build_contrastive_datasets(
+    source: ECGSource,
+    crop_len: int,
+    augmentations: dict | None = None,
+    train_folds: Sequence[int] = DEFAULT_TRAIN_FOLDS,
+    val_fold: int = DEFAULT_VAL_FOLD,
+) -> tuple[TwoViewDataset, TwoViewDataset, dict[str, np.ndarray]]:
+    """Build two-view train/val datasets for contrastive pretraining.
+
+    Each view is a random crop of the standardized signal plus the configured
+    augmentations; drawing it twice gives a positive pair. Statistics are fit on
+    the train folds. Returns the train and validation datasets and the fitted
+    lead statistics.
+    """
+    train_idx, val_idx, _ = split_indices_by_fold(source, train_folds, val_fold)
+    mean, std = fit_lead_stats(source, train_idx)
+    view_tf = Compose(
+        [Standardize(mean, std), RandomCrop(crop_len), *build_augmentations(augmentations)]
+    )
+    return (
+        TwoViewDataset(source, train_idx, view_tf),
+        TwoViewDataset(source, val_idx, view_tf),
         {"mean": mean, "std": std},
     )

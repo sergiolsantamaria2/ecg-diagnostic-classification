@@ -1,0 +1,13 @@
+name: contrastive
+temperature: 0.1        # NT-Xent temperature
+projector:
+  name: projection
+  args:
+    proj_dim: 128
+    hidden_dim: 256
+views:                 # two augmented crops of the same record form a positive pair
+  crop_len: 250        # 2.5 s window at 100 Hz
+  augmentations:
+    scaling: 0.15
+    lead_mask: 2
+    gaussian_noise: 0.15

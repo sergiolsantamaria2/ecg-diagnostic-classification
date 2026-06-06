@@ -15,4 +15,8 @@ def build_head(name: str, **kwargs) -> nn.Module:
         from .reconstruction import build_reconstruction
 
         return build_reconstruction(**kwargs)
+    if name == "projection":
+        from .projection import build_projection
+
+        return build_projection(**kwargs)
     raise ValueError(f"unknown head: {name!r}")

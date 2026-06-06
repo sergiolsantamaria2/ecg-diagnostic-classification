@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 import torch
@@ -21,7 +21,7 @@ class PretrainTrainer:
     def __init__(
         self,
         model: torch.nn.Module,
-        loss_step: Callable[[torch.nn.Module, torch.Tensor], torch.Tensor],
+        loss_step: Callable[[torch.nn.Module, Sequence[torch.Tensor]], torch.Tensor],
         optimizer: torch.optim.Optimizer,
         scheduler: torch.optim.lr_scheduler.LRScheduler | None = None,
         device: str | None = None,
@@ -42,30 +42,35 @@ class PretrainTrainer:
     def _autocast(self):
         return torch.autocast(device_type="cuda", dtype=torch.bfloat16, enabled=self.amp)
 
+    def _to_device(self, batch: Sequence) -> list:
+        return [b.to(self.device, non_blocking=True) if torch.is_tensor(b) else b for b in batch]
+
     def _train_epoch(self, loader: DataLoader) -> float:
         self.model.train()
         running, n = 0.0, 0
-        for x, _ in loader:
-            x = x.to(self.device, non_blocking=True)
+        for batch in loader:
+            batch = self._to_device(batch)
+            bs = batch[0].size(0)
             self.optimizer.zero_grad(set_to_none=True)
             with self._autocast():
-                loss = self.loss_step(self.model, x)
+                loss = self.loss_step(self.model, batch)
             loss.backward()
             self.optimizer.step()
-            running += loss.item() * x.size(0)
-            n += x.size(0)
+            running += loss.item() * bs
+            n += bs
         return running / n
 
     @torch.no_grad()
     def evaluate(self, loader: DataLoader) -> float:
         self.model.eval()
         running, n = 0.0, 0
-        for x, _ in loader:
-            x = x.to(self.device, non_blocking=True)
+        for batch in loader:
+            batch = self._to_device(batch)
+            bs = batch[0].size(0)
             with self._autocast():
-                loss = self.loss_step(self.model, x)
-            running += loss.item() * x.size(0)
-            n += x.size(0)
+                loss = self.loss_step(self.model, batch)
+            running += loss.item() * bs
+            n += bs
         return running / n
 
     def save_checkpoint(self, path: Path, **extra) -> None:

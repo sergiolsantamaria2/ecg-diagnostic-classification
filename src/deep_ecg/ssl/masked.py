@@ -8,9 +8,13 @@ decoder (a reconstruction head) is discarded after pretraining.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+from .losses import masked_reconstruction_loss
 
 
 def temporal_block_mask(
@@ -75,3 +79,28 @@ class MaskedAutoencoder(nn.Module):
         recon = self.decoder(features)
         recon = F.interpolate(recon, size=length, mode="linear", align_corners=False)
         return recon, mask
+
+
+def build_masked(encoder: nn.Module, cfg: Mapping) -> MaskedAutoencoder:
+    """Assemble the masked autoencoder from the encoder and the SSL config."""
+    from ..models.heads import build_head
+
+    decoder = build_head(
+        "reconstruction",
+        in_channels=encoder.out_channels,
+        **(cfg["decoder"].get("args") or {}),
+    )
+    return MaskedAutoencoder(
+        encoder,
+        decoder,
+        mask_ratio=cfg["mask_ratio"],
+        mask_span=cfg["mask_span"],
+        learnable_token=cfg["learnable_token"],
+    )
+
+
+def masked_loss_step(model: nn.Module, batch: Sequence[torch.Tensor]) -> torch.Tensor:
+    """Reconstruct masked spans of the signal and score them with masked MSE."""
+    x = batch[0]
+    recon, mask = model(x)
+    return masked_reconstruction_loss(recon, x, mask)
