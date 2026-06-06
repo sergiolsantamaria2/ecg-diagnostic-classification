@@ -40,13 +40,14 @@ The encoder is pretrained on the unlabeled training signals with two
 self-supervised objectives — masked reconstruction (random 0.5 s spans masked
 across all leads and reconstructed under MSE) and a contrastive CLOCS-style
 objective (two augmented crops of a record as a positive pair, NT-Xent loss) —
-then assessed under three regimes at 1%, 10% and 100% of the labels: training
-from scratch, a linear probe on the frozen encoder, and fine-tuning.
+then assessed for both architectures under three regimes at 1%, 10% and 100% of
+the labels: training from scratch, a linear probe on the frozen encoder, and
+fine-tuning. Test macro-AUROC; the 1% and 10% regimes report the mean over three
+subsampling seeds.
 
-![Label efficiency](docs/data_efficiency.png)
+![ResNet1D label efficiency](docs/data_efficiency.png)
 
-Test macro-AUROC; the 1% and 10% regimes report the mean over three subsampling
-seeds.
+ResNet1D:
 
 | Regime | Pretext | 1% | 10% | 100% |
 |--------|---------|:--:|:---:|:----:|
@@ -56,17 +57,22 @@ seeds.
 | Fine-tune | Masked | 0.831 | 0.884 | 0.919 |
 | Fine-tune | Contrastive | 0.830 | 0.889 | **0.924** |
 
+![CNN+Transformer label efficiency](docs/data_efficiency_cnn_transformer.png)
+
 - Fine-tuning a self-supervised encoder improves label efficiency in the
-  low-label regime: at 10% labels both pretext tasks beat from-scratch by
-  ~1.5–2 points, and at 1% by ~1 point.
-- The contrastive objective is the stronger pretext: its frozen features are more
-  linearly separable than the reconstruction ones (linear probe higher at every
-  fraction), and fine-tuning matches or exceeds masked reconstruction.
-- Contrastive fine-tuning is the only setting that also improves on from-scratch
-  at full labels (0.924 vs 0.922); masked reconstruction gives no gain there, as
-  ~17k labels already saturate the encoder.
-- A frozen encoder (linear probe) still trails end-to-end training for both
-  pretexts — the diagnostic task needs the encoder to adapt.
+  low-label regime for both architectures, and the gain is larger for the more
+  data-hungry CNN+Transformer: at 1% labels it lifts test macro-AUROC by ~2
+  points (0.805 from scratch to 0.827 fine-tuned) versus ~1 point for the
+  ResNet1D.
+- The contrastive objective is the stronger pretext on both: its frozen features
+  are more linearly separable than the reconstruction ones (higher linear probe),
+  and fine-tuning matches or exceeds masked reconstruction — masked keeps only a
+  slight edge at 1% fine-tuning.
+- Contrastive fine-tuning also improves on from-scratch at full labels for both
+  architectures (ResNet1D 0.924 vs 0.922; CNN+Transformer 0.920 vs 0.915), where
+  masked reconstruction gives little to no gain.
+- A frozen encoder (linear probe) still trails end-to-end training for every
+  pretext and architecture — the diagnostic task needs the encoder to adapt.
 
 ## Pretraining checkpoint selection
 
