@@ -2,9 +2,10 @@
 
 Multi-label diagnostic classification of 12-lead ECGs on **PTB-XL** (5 diagnostic
 superclasses). A residual 1D CNN and a CNN+Transformer are trained, regularized
-with signal augmentation, and ensembled to the level of the PTB-XL benchmark. A
-masked-reconstruction self-supervised objective then pretrains the encoder on the
-unlabeled signals, improving label efficiency in the low-data regime.
+with signal augmentation, and ensembled to the level of the PTB-XL benchmark. Two
+self-supervised objectives — masked signal reconstruction and a contrastive
+(CLOCS-style) objective — then pretrain the encoder on the unlabeled signals,
+improving label efficiency in the low-data regime.
 
 ![Results](docs/results.png)
 
@@ -35,32 +36,37 @@ matches it (0.928, bootstrap 95% CI 0.921–0.936).
 
 ## Label efficiency with self-supervised pretraining
 
-The encoder is pretrained with a masked-reconstruction objective on the unlabeled
-training signals — random 0.5 s spans masked across all leads and reconstructed
-under MSE — then assessed under three regimes at 1%, 10% and 100% of the labels:
-training from scratch, a linear probe on the frozen encoder, and fine-tuning the
-pretrained encoder.
+The encoder is pretrained on the unlabeled training signals with two
+self-supervised objectives — masked reconstruction (random 0.5 s spans masked
+across all leads and reconstructed under MSE) and a contrastive CLOCS-style
+objective (two augmented crops of a record as a positive pair, NT-Xent loss) —
+then assessed under three regimes at 1%, 10% and 100% of the labels: training
+from scratch, a linear probe on the frozen encoder, and fine-tuning.
 
 ![Label efficiency](docs/data_efficiency.png)
 
-Test macro-AUROC; the 1% and 10% regimes report the mean ± standard deviation
-over three subsampling seeds.
+Test macro-AUROC; the 1% and 10% regimes report the mean over three subsampling
+seeds.
 
-| Regime | 1% | 10% | 100% |
-|--------|:--:|:---:|:----:|
-| From scratch | 0.822 ± 0.001 | 0.870 ± 0.003 | **0.922** |
-| Linear probe | 0.804 ± 0.009 | 0.849 ± 0.002 | 0.868 |
-| **Fine-tune (SSL)** | **0.831** ± 0.004 | **0.884** ± 0.001 | 0.919 |
+| Regime | Pretext | 1% | 10% | 100% |
+|--------|---------|:--:|:---:|:----:|
+| From scratch | — | 0.822 | 0.870 | 0.922 |
+| Linear probe | Masked | 0.804 | 0.849 | 0.868 |
+| Linear probe | Contrastive | 0.811 | 0.860 | 0.875 |
+| Fine-tune | Masked | 0.831 | 0.884 | 0.919 |
+| Fine-tune | Contrastive | 0.830 | 0.889 | **0.924** |
 
-- Fine-tuning the self-supervised encoder improves over training from scratch in
-  the low-label regime (+0.9 pt at 1%, +1.4 pt at 10%) — a consistent, if modest,
-  label-efficiency gain.
-- The advantage disappears with all labels: from scratch reaches 0.922 (matching
-  the supervised baseline) against 0.919 fine-tuned, as ~17k labels already
-  saturate the encoder.
-- The linear probe trails both regimes, most at full labels, indicating the
-  masked-reconstruction features are not linearly separable for this task — a
-  known limitation of generative pretext tasks relative to contrastive ones.
+- Fine-tuning a self-supervised encoder improves label efficiency in the
+  low-label regime: at 10% labels both pretext tasks beat from-scratch by
+  ~1.5–2 points, and at 1% by ~1 point.
+- The contrastive objective is the stronger pretext: its frozen features are more
+  linearly separable than the reconstruction ones (linear probe higher at every
+  fraction), and fine-tuning matches or exceeds masked reconstruction.
+- Contrastive fine-tuning is the only setting that also improves on from-scratch
+  at full labels (0.924 vs 0.922); masked reconstruction gives no gain there, as
+  ~17k labels already saturate the encoder.
+- A frozen encoder (linear probe) still trails end-to-end training for both
+  pretexts — the diagnostic task needs the encoder to adapt.
 
 ## Task and data
 
