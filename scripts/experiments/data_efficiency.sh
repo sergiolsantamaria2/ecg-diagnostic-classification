@@ -8,9 +8,9 @@
 # method runs linear probe and fine-tuning from the given pretrained encoder.
 # Each run retries a few times (W&B init can time out) and records a done-marker,
 # so re-running resumes.
-# Usage: scripts/data_efficiency.sh <method> <model> [pretrained_best.pt]
-#   e.g. scripts/data_efficiency.sh scratch     cnn_transformer
-#        scripts/data_efficiency.sh contrastive cnn_transformer outputs/<run>/checkpoints/best_pretext.pt
+# Usage: scripts/experiments/data_efficiency.sh <method> <model> [pretrained_best.pt]
+#   e.g. scripts/experiments/data_efficiency.sh scratch     cnn_transformer
+#        scripts/experiments/data_efficiency.sh contrastive cnn_transformer outputs/<run>/checkpoints/best_pretext.pt
 set -uo pipefail
 
 METHOD="${1:?method required (scratch|masked|contrastive|...)}"
