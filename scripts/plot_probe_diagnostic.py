@@ -67,7 +67,7 @@ def main() -> None:
 
     fig.suptitle("Pretraining diagnostic: downstream probe vs. pretext loss (ResNet1D)")
     fig.tight_layout()
-    out = REPO_ROOT / "docs" / "probe_diagnostic.png"
+    out = REPO_ROOT / "figures" / "probe_diagnostic.png"
     fig.savefig(out, dpi=150)
     print(f"wrote {out}")
 

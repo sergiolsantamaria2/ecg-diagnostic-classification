@@ -90,7 +90,7 @@ def main() -> None:
     fig.tight_layout()
 
     name = "data_efficiency.png" if arch == "resnet1d" else f"data_efficiency_{arch}.png"
-    out = REPO_ROOT / "docs" / name
+    out = REPO_ROOT / "figures" / name
     out.parent.mkdir(exist_ok=True)
     fig.savefig(out, dpi=150)
     print(f"wrote {out}")

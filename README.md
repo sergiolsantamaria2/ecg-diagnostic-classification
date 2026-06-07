@@ -7,7 +7,7 @@ self-supervised objectives — masked signal reconstruction and a contrastive
 (CLOCS-style) objective — then pretrain the encoder on the unlabeled signals,
 improving label efficiency in the low-data regime.
 
-![Results](docs/results.png)
+![Results](figures/results.png)
 
 ## Results
 
@@ -45,7 +45,7 @@ the labels: training from scratch, a linear probe on the frozen encoder, and
 fine-tuning. Test macro-AUROC; the 1% and 10% regimes report the mean over three
 subsampling seeds.
 
-![ResNet1D label efficiency](docs/data_efficiency.png)
+![ResNet1D label efficiency](figures/data_efficiency.png)
 
 ResNet1D:
 
@@ -57,7 +57,7 @@ ResNet1D:
 | Fine-tune | Masked | 0.831 | 0.884 | 0.919 |
 | Fine-tune | Contrastive | 0.830 | 0.889 | **0.924** |
 
-![CNN+Transformer label efficiency](docs/data_efficiency_cnn_transformer.png)
+![CNN+Transformer label efficiency](figures/data_efficiency_cnn_transformer.png)
 
 - Fine-tuning a self-supervised encoder improves label efficiency in the
   low-label regime for both architectures, and the gain is larger for the more
@@ -81,7 +81,7 @@ monitored online: every 10 epochs a linear probe (frozen encoder, validation
 fold) measures the encoder's diagnostic AUROC, which selects the checkpoint and
 early-stops training.
 
-![Pretraining diagnostic](docs/probe_diagnostic.png)
+![Pretraining diagnostic](figures/probe_diagnostic.png)
 
 Masked reconstruction tracks the probe monotonically — loss and downstream
 quality improve together. The contrastive probe instead peaks around epoch 70 and
