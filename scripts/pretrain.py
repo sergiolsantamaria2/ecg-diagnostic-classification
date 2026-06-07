@@ -28,7 +28,7 @@ from deep_ecg.training.schedulers import build_scheduler
 from deep_ecg.utils.seed import seed_everything, seed_worker
 
 
-@hydra.main(version_base=None, config_path="configs", config_name="pretrain")
+@hydra.main(version_base=None, config_path="../configs", config_name="pretrain")
 def main(cfg: DictConfig) -> float:
     print(OmegaConf.to_yaml(cfg))
     seed_everything(cfg.seed)

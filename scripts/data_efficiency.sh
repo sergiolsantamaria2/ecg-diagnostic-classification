@@ -32,7 +32,7 @@ run() {  # regime fraction seed [extra hydra overrides...]
     return
   fi
   for attempt in 1 2 3; do
-    if .venv/bin/python train.py +experiment="$regime" model="$MODEL" \
+    if .venv/bin/python scripts/train.py +experiment="$regime" model="$MODEL" \
       data.label_fraction="$frac" data.subsample_seed="$seed" \
       trainer.epochs="${EPOCHS[$frac]}" \
       "wandb.name=${regime}_${METHOD}_${MODEL}_f${frac}_s${seed}" \

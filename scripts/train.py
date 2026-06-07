@@ -20,7 +20,7 @@ from deep_ecg.training.trainer import Trainer
 from deep_ecg.utils.seed import seed_everything, seed_worker
 
 
-@hydra.main(version_base=None, config_path="configs", config_name="config")
+@hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(cfg: DictConfig) -> float:
     print(OmegaConf.to_yaml(cfg))
     seed_everything(cfg.seed)
