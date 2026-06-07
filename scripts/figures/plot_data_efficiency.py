@@ -6,7 +6,7 @@ averaging test macro-AUROC over subsampling seeds, and writes the two-panel
 figure used in the README: one panel per regime, each comparing the two
 self-supervised methods against the supervised-from-scratch reference. Reads from
 W&B so the figure is reproducible from the logged runs rather than copied numbers.
-Usage: ``uv run python scripts/plot_data_efficiency.py [arch] [entity/project]``.
+Usage: ``uv run python scripts/figures/plot_data_efficiency.py [arch] [entity/project]``.
 """
 
 from __future__ import annotations
@@ -26,7 +26,7 @@ METHODS = {"masked": ("Masked SSL", "#d1495b"), "contrastive": ("Contrastive SSL
 PANELS = [("linear_probe", "Linear probe"), ("finetune", "Fine-tune")]
 ARCH_LABELS = {"resnet1d": "ResNet1D", "cnn_transformer": "CNN+Transformer"}
 SCRATCH_COLOR = "#888888"
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def collect(path: str, arch: str):

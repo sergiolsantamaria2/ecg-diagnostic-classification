@@ -2,7 +2,7 @@
 
 Loads a run's Hydra config and best checkpoint, rebuilds the data and model,
 tunes per-class thresholds on the validation fold, and reports test metrics and
-a per-class report. Usage: ``uv run python scripts/evaluate.py <run_dir>``.
+a per-class report. Usage: ``uv run python scripts/eval/evaluate.py <run_dir>``.
 """
 
 from __future__ import annotations

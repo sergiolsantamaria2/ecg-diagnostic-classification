@@ -6,7 +6,7 @@ masked reconstruction tracks the probe monotonically, whereas the contrastive
 objective keeps improving its loss while the probe peaks early and degrades —
 motivating checkpoint selection by the probe rather than the pretext loss. Reads
 the logged W&B history.
-Usage: ``uv run python scripts/plot_probe_diagnostic.py [entity/project]``.
+Usage: ``uv run python scripts/figures/plot_probe_diagnostic.py [entity/project]``.
 """
 
 from __future__ import annotations
@@ -22,7 +22,7 @@ DEFAULT_PATH = "sergiolsantamaria-tu-wien/deep-ecg"
 RUNS = [("masked", "masked_resnet1d_probe"), ("contrastive", "contrastive_resnet1d_probe")]
 PROBE_COLOR = "#2e7d32"
 LOSS_COLOR = "#888888"
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def latest_run(api, path: str, name: str):

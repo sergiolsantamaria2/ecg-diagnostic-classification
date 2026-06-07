@@ -19,7 +19,7 @@ PTBXL_URL = (
     "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.3.zip"
 )
 EXTRACTED_DIRNAME = "ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.3"
-REPO_ROOT = Path(__file__).resolve().parents[1]
+REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _remote_size(url: str) -> int:

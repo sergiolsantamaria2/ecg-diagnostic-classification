@@ -3,7 +3,7 @@
 Each run's best checkpoint is rebuilt from its Hydra config; runs trained with
 random crop are evaluated with matching test-time crop averaging, others on the
 full signal. Per-class thresholds are tuned on the (ensembled) validation fold.
-Usage: ``uv run python scripts/ensemble.py <run_dir> <run_dir> [...]``.
+Usage: ``uv run python scripts/eval/ensemble.py <run_dir> <run_dir> [...]``.
 """
 
 from __future__ import annotations
