@@ -1,0 +1,22 @@
+# @package _global_
+
+# Cross-source contrastive pretraining: CNN+Transformer encoder on the five
+# non-PTB-XL Challenge 2021 databases, transferred downstream to held-out PTB-XL.
+
+defaults:
+  - override /data: cinc2021
+  - override /model: cnn_transformer
+  - override /ssl: contrastive
+
+data:
+  batch_size: 256   # more negatives for the contrastive loss
+
+trainer:
+  monitor:
+    enabled: false   # unlabeled corpus: no downstream probe target available
+
+wandb:
+  group: pretrain_crosssource
+  name: contrastive_cnn_transformer
+  tags: [pretrain, crosssource, contrastive, cnn_transformer]
+  notes: Contrastive (CLOCS/NT-Xent) pretraining on CinC 2021 (non-PTB-XL), CNN+Transformer encoder

@@ -1,0 +1,23 @@
+# @package _global_
+
+# Cross-source masked pretraining: CNN+Transformer encoder on the five non-PTB-XL
+# Challenge 2021 databases, transferred downstream to held-out PTB-XL.
+
+defaults:
+  - override /data: cinc2021
+  - override /model: cnn_transformer
+
+ssl:
+  decoder:
+    args:
+      n_upsample: 4   # encoder downsamples x16 (vs x32 for ResNet1D)
+
+trainer:
+  monitor:
+    enabled: false   # unlabeled corpus: no downstream probe target available
+
+wandb:
+  group: pretrain_crosssource
+  name: masked_cnn_transformer
+  tags: [pretrain, crosssource, masked, cnn_transformer]
+  notes: Masked pretraining on CinC 2021 (non-PTB-XL), CNN+Transformer encoder
