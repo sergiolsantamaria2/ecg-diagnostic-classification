@@ -1,0 +1,22 @@
+# @package _global_
+
+# Cross-source contrastive pretraining: ResNet1D encoder on the five non-PTB-XL
+# Challenge 2021 databases, transferred downstream to held-out PTB-XL.
+
+defaults:
+  - override /data: cinc2021
+  - override /model: resnet1d
+  - override /ssl: contrastive
+
+data:
+  batch_size: 256   # more negatives for the contrastive loss
+
+trainer:
+  monitor:
+    enabled: false   # unlabeled corpus: no downstream probe target available
+
+wandb:
+  group: pretrain_crosssource
+  name: contrastive_resnet1d
+  tags: [pretrain, crosssource, contrastive, resnet1d]
+  notes: Contrastive (CLOCS/NT-Xent) pretraining on CinC 2021 (non-PTB-XL), ResNet1D encoder

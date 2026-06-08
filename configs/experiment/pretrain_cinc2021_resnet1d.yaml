@@ -1,0 +1,18 @@
+# @package _global_
+
+# Cross-source masked pretraining: ResNet1D encoder on the five non-PTB-XL
+# Challenge 2021 databases, transferred downstream to held-out PTB-XL.
+
+defaults:
+  - override /data: cinc2021
+  - override /model: resnet1d
+
+trainer:
+  monitor:
+    enabled: false   # unlabeled corpus: no downstream probe target available
+
+wandb:
+  group: pretrain_crosssource
+  name: masked_resnet1d
+  tags: [pretrain, crosssource, masked, resnet1d]
+  notes: Masked pretraining on CinC 2021 (non-PTB-XL), ResNet1D encoder

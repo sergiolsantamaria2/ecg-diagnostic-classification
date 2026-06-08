@@ -28,6 +28,14 @@ from deep_ecg.training.schedulers import build_scheduler
 from deep_ecg.utils.seed import seed_everything, seed_worker
 
 
+def _source_kwargs(data_cfg: DictConfig) -> dict:
+    """Source-constructor kwargs from the data config (drop loader/training keys)."""
+    skip = {"source", "batch_size", "num_workers", "augmentations",
+            "label_fraction", "subsample_seed"}
+    container = OmegaConf.to_container(data_cfg, resolve=True)
+    return {k: v for k, v in container.items() if k not in skip}
+
+
 @hydra.main(version_base=None, config_path="../configs", config_name="pretrain")
 def main(cfg: DictConfig) -> float:
     print(OmegaConf.to_yaml(cfg))
@@ -35,12 +43,7 @@ def main(cfg: DictConfig) -> float:
     run_dir = Path(HydraConfig.get().run.dir)
 
     # -- data (no labels used; unlabeled records kept) ---------------------
-    source = build_source(
-        cfg.data.source,
-        root=cfg.data.root,
-        sampling_rate=cfg.data.sampling_rate,
-        drop_unlabeled=cfg.data.drop_unlabeled,
-    )
+    source = build_source(cfg.data.source, **_source_kwargs(cfg.data))
     ssl_cfg = OmegaConf.to_container(cfg.ssl, resolve=True)
     name = ssl_cfg["name"]
     if name == "contrastive":

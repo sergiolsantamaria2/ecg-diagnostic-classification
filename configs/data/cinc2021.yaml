@@ -1,0 +1,27 @@
+source: cinc2021
+root: data/raw/cinc2021
+sampling_rate: 100
+duration_s: 10.0
+
+# Cross-source pretraining corpus: the five non-PTB-XL Challenge 2021 databases.
+# PTB-XL is held out and consumed natively (with its diagnostic labels) downstream.
+databases:
+  - cpsc_2018
+  - cpsc_2018_extra
+  - georgia
+  - chapman_shaoxing
+  - ningbo
+
+# Unlabeled corpus: SNOMED labels are not mapped (kept for interface parity).
+drop_unlabeled: false
+
+batch_size: 128
+num_workers: 8
+
+# Augmentations (train only). null disables; off for the baseline.
+augmentations:
+  crop: null
+  temporal_shift: null
+  scaling: null
+  lead_mask: null
+  gaussian_noise: null

@@ -11,6 +11,10 @@ def build_source(name: str, **kwargs) -> ECGSource:
         from .ptbxl import PTBXLSource
 
         return PTBXLSource(**kwargs)
+    if name == "cinc2021":
+        from .cinc2021 import CinC2021Source
+
+        return CinC2021Source(**kwargs)
     raise ValueError(f"unknown ECG source: {name!r}")
 
 
