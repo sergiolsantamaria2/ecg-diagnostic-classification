@@ -104,8 +104,13 @@ def fetch_file(url: str, dest: Path, workers: int, retries: int = 10) -> bool:
     return False
 
 
-def download_database(db: str, raw_dir: Path, workers: int) -> int:
-    """Download every record of one database into ``raw_dir/<db>/``."""
+def download_database(db: str, raw_dir: Path, workers: int, max_records: int | None = None) -> int:
+    """Download records of one database into ``raw_dir/<db>/``.
+
+    With ``max_records`` set, only the first that many records (in subfolder /
+    ``RECORDS`` order) are fetched — enough to build a source-balanced corpus
+    without downloading a large database in full.
+    """
     out = raw_dir / db
     out.mkdir(parents=True, exist_ok=True)
 
@@ -113,6 +118,8 @@ def download_database(db: str, raw_dir: Path, workers: int) -> int:
     records: list[tuple[str, str]] = []  # (subfolder, stem)
     for sub in subfolders:
         records.extend((sub, stem) for stem in list_records(db, sub))
+    if max_records is not None:
+        records = records[:max_records]
     print(f"{db}: {len(subfolders)} subfolders, {len(records)} records", flush=True)
 
     jobs: list[tuple[str, Path]] = []
@@ -146,6 +153,12 @@ def main() -> int:
         help="database(s) to download; repeatable. Default: all five.",
     )
     parser.add_argument("--workers", type=int, default=12, help="parallel download workers")
+    parser.add_argument(
+        "--max-records",
+        type=int,
+        default=None,
+        help="cap records downloaded per database (for a source-balanced corpus)",
+    )
     args = parser.parse_args()
 
     dbs = DEFAULT_DATABASES if not args.db or "all" in args.db else tuple(dict.fromkeys(args.db))
@@ -153,7 +166,7 @@ def main() -> int:
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     for db in dbs:
-        n = download_database(db, raw_dir, args.workers)
+        n = download_database(db, raw_dir, args.workers, args.max_records)
         print(f"Done {db}: {n} records at {raw_dir / db}", flush=True)
     return 0
 

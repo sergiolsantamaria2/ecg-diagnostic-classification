@@ -3,9 +3,11 @@ root: data/raw/cinc2021
 sampling_rate: 100
 duration_s: 10.0
 
-# Optional per-database cap (null = use all records). Balances the pooled corpus
-# across sources so no single database dominates the self-supervised objective.
-records_per_db: null
+# Per-database cap (null = use all records). Balances the pooled corpus across
+# sources so no single database dominates the self-supervised objective: the two
+# large databases (chapman, ningbo) and georgia are capped to the 10k scale of the
+# others rather than letting ningbo's ~35k records make up half the corpus.
+records_per_db: 10000
 
 # Cross-source pretraining corpus: the five non-PTB-XL Challenge 2021 databases.
 # PTB-XL is held out and consumed natively (with its diagnostic labels) downstream.
