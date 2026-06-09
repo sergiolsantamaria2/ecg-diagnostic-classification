@@ -52,7 +52,7 @@ DEFAULT_DATABASES = (
 )
 
 
-def _get(url: str, workers: int = 1, timeout: int = 60) -> bytes:
+def _get(url: str, workers: int = 1, timeout: tuple[int, int] = (15, 60)) -> bytes:
     resp = _session(workers).get(url, timeout=timeout)
     resp.raise_for_status()
     return resp.content
@@ -76,11 +76,13 @@ def list_records(db: str, subfolder: str) -> list[str]:
 
 
 def fetch_file(url: str, dest: Path, workers: int, retries: int = 10) -> bool:
-    """Download ``url`` to ``dest`` atomically; return ``False`` if skipped.
+    """Download ``url`` to ``dest`` atomically; return ``False`` if not fetched.
 
-    Transient errors (timeouts, 5xx) are retried; a 4xx (e.g. a ``RECORDS`` entry
-    whose file is genuinely absent) is permanent, so it is skipped rather than
-    retried or raised — one missing record must not abort a 65k-file download.
+    A 4xx (e.g. a ``RECORDS`` entry whose file is genuinely absent) is permanent
+    and skipped at once. Transient errors (timeouts, 5xx) are retried, but once
+    retries are exhausted the file is left unfetched rather than raised: one
+    record — or even a brief PhysioNet outage — must never abort a 40k-file
+    download. Missing files stay off disk, so re-running the script retries them.
     """
     if dest.exists() and dest.stat().st_size > 0:
         return True
@@ -91,15 +93,10 @@ def fetch_file(url: str, dest: Path, workers: int, retries: int = 10) -> bool:
             tmp.rename(dest)
             return True
         except requests.HTTPError as exc:
-            code = exc.response.status_code
-            if 400 <= code < 500 and code != 429:
+            if 400 <= exc.response.status_code < 500 and exc.response.status_code != 429:
                 return False
-            if attempt == retries:
-                raise
             time.sleep(min(2 * attempt, 10))
         except Exception:  # noqa: BLE001 — any other network error is retriable
-            if attempt == retries:
-                raise
             time.sleep(min(2 * attempt, 10))
     return False
 
@@ -127,18 +124,16 @@ def download_database(db: str, raw_dir: Path, workers: int, max_records: int | N
         for ext in (".hea", ".mat"):
             jobs.append((f"{BASE_URL}/{db}/{sub}/{stem}{ext}", out / f"{stem}{ext}"))
 
-    done = skipped = 0
+    done = missing = 0
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {pool.submit(fetch_file, url, dest, workers): url for url, dest in jobs}
         for fut in as_completed(futures):
             if not fut.result():
-                skipped += 1
+                missing += 1
             done += 1
             if done % 2000 == 0 or done == len(jobs):
                 print(f"  {db}: {done}/{len(jobs)} files", flush=True)
-    if skipped:
-        print(f"  {db}: skipped {skipped} missing files (absent on server)", flush=True)
-    return len(records)
+    return len(records), missing
 
 
 def main() -> int:
@@ -166,8 +161,15 @@ def main() -> int:
     raw_dir.mkdir(parents=True, exist_ok=True)
 
     for db in dbs:
-        n = download_database(db, raw_dir, args.workers, args.max_records)
-        print(f"Done {db}: {n} records at {raw_dir / db}", flush=True)
+        prev_missing = -1
+        for pass_i in range(1, 6):  # repeat until a pass fetches nothing new
+            n, missing = download_database(db, raw_dir, args.workers, args.max_records)
+            if missing == 0 or missing == prev_missing:
+                break
+            print(f"  {db}: {missing} files still missing, retry pass {pass_i + 1}", flush=True)
+            prev_missing = missing
+        note = f" ({missing} absent on server)" if missing else ""
+        print(f"Done {db}: {n} records at {raw_dir / db}{note}", flush=True)
     return 0
 
 
