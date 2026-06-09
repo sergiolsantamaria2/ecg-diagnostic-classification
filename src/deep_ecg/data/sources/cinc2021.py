@@ -54,6 +54,7 @@ class CinC2021Source(ECGSource):
         databases: tuple[str, ...] = DEFAULT_DATABASES,
         sampling_rate: int = 100,
         duration_s: float = 10.0,
+        records_per_db: int | None = None,
         cache: bool = True,
         drop_unlabeled: bool = False,  # accepted for interface parity; ignored
     ) -> None:
@@ -67,6 +68,8 @@ class CinC2021Source(ECGSource):
         self._stems: list[np.ndarray] = []
         for db in self.databases:
             signals, stems = self._load_database(db, cache)
+            if records_per_db is not None and len(stems) > records_per_db:
+                signals, stems = signals[:records_per_db], stems[:records_per_db]
             self._arrays.append(signals)
             self._db_of.append(np.full(len(stems), db, dtype=object))
             self._stems.append(stems)
