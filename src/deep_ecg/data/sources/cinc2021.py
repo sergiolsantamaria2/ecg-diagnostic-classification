@@ -123,9 +123,15 @@ class CinC2021Source(ECGSource):
         return signals, ids
 
     def _read_record(self, record_path: Path) -> np.ndarray:
-        """Read one WFDB record and harmonize it to ``(12, target_len)``."""
+        """Read one WFDB record and harmonize it to ``(12, target_len)``.
+
+        A few CinC records carry non-finite samples (saturated or missing ADC
+        values); they are zeroed before resampling so a single bad sample cannot
+        poison the polyphase filter — and, downstream, the training loss.
+        """
         sig, fields = wfdb.rdsamp(str(record_path))  # (T, n) in physical units
         canonical = self._to_canonical(sig, fields["sig_name"]).T  # (12, T)
+        canonical = np.nan_to_num(canonical, nan=0.0, posinf=0.0, neginf=0.0)
         resampled = self._resample(canonical, int(fields["fs"]))
         return self._fit_length(resampled)
 
