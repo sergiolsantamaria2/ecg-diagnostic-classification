@@ -5,7 +5,9 @@ superclasses). A residual 1D CNN and a CNN+Transformer are trained, regularized
 with signal augmentation, and ensembled to the level of the PTB-XL benchmark. Two
 self-supervised objectives — masked signal reconstruction and a contrastive
 (CLOCS-style) objective — then pretrain the encoder on the unlabeled signals,
-improving label efficiency in the low-data regime.
+improving label efficiency in the low-data regime. The same pretraining,
+performed on five *other* ECG databases and transferred to PTB-XL, retains the
+gain across a change of acquisition source.
 
 ![Results](figures/results.png)
 
@@ -96,6 +98,46 @@ enough to absorb it. The pretext loss is therefore an adequate selector here; th
 online probe earns its place as a diagnostic and an early-stopping signal (it
 halted the contrastive run at epoch 100 rather than 200).
 
+## Cross-source generalization
+
+The self-supervised recipe is source-agnostic by construction — it consumes raw
+signals, not labels — so the encoder can be pretrained on entirely different ECG
+databases and transferred to PTB-XL. To test whether the label-efficiency gain
+survives a change of acquisition source, the encoder is pretrained (no labels) on
+a source-balanced ~40k-record corpus pooled from the five non-PTB-XL
+PhysioNet/CinC 2021 databases (CPSC, CPSC-Extra, Georgia, Chapman-Shaoxing,
+Ningbo), each harmonized to the canonical 12-lead, 100 Hz, 10-second format, then
+fine-tuned and probed on held-out PTB-XL exactly as before. PTB-XL is never seen
+during pretraining.
+
+![ResNet1D cross-source transfer](figures/cross_source.png)
+
+ResNet1D, test macro-AUROC (in-domain pretraining on PTB-XL vs cross-source
+pretraining on the five other databases):
+
+| Regime | Pretext | In-domain | Cross-source |
+|--------|---------|:---------:|:------------:|
+| Linear probe | Masked | 0.804 / 0.849 / 0.868 | 0.820 / 0.860 / 0.876 |
+| Linear probe | Contrastive | 0.811 / 0.860 / 0.875 | 0.816 / 0.865 / 0.879 |
+| Fine-tune | Masked | 0.831 / 0.884 / 0.919 | 0.836 / 0.886 / 0.919 |
+| Fine-tune | Contrastive | 0.830 / 0.889 / 0.924 | 0.828 / 0.887 / **0.925** |
+
+Cells are 1% / 10% / 100% of the labels.
+
+![CNN+Transformer cross-source transfer](figures/cross_source_cnn_transformer.png)
+
+- Pretraining on foreign sources carries no transfer penalty: the cross-source
+  curves match or exceed the in-domain ones for both architectures. A diverse
+  multi-source corpus is at least as useful as PTB-XL's own signals.
+- The effect is clearest under the linear probe, where cross-source features are
+  consistently more linearly separable for the PTB-XL task than in-domain ones
+  (masked reconstruction gains ~1.6 points at 1% labels for the ResNet1D) — a
+  larger, more heterogeneous pretraining distribution yields more transferable
+  representations.
+- Fine-tuning is on par across sources, and the best full-label result in the
+  study is cross-source contrastive fine-tuning (ResNet1D 0.925, CNN+Transformer
+  0.922), edging both the in-domain and the from-scratch references.
+
 ## Task and data
 
 PTB-XL (PhysioNet): ~21.8k 10-second 12-lead ECGs at 100 Hz. SCP codes are mapped
@@ -103,6 +145,14 @@ to the five diagnostic superclasses (NORM, MI, STTC, CD, HYP); the official
 stratified folds are used (train 1–8, validation 9, test 10). Exploratory
 analysis is in [`notebooks/eda.ipynb`](notebooks/eda.ipynb). PTB-XL is released
 under CC-BY 4.0 and is not redistributed here.
+
+Cross-source pretraining draws on the five non-PTB-XL databases of the
+PhysioNet/Computing in Cardiology Challenge 2021 (CPSC and CPSC-Extra, Georgia,
+Chapman-Shaoxing, Ningbo): heterogeneous in sampling rate and duration, they are
+resampled, reordered and cropped to the canonical 12-lead, 100 Hz, 10-second
+format by the `ECGSource` adapter and pooled into a source-balanced corpus
+(capped at 10k records per database). Their SNOMED-CT labels are unused — the
+corpus serves self-supervised pretraining only.
 
 ## Design
 
@@ -117,3 +167,5 @@ Experiments are config-driven (Hydra), tracked in Weights & Biases and seeded.
   Scientific Data, 2020.
 - Strodthoff et al. *Deep learning for ECG analysis: benchmarks and insights from
   PTB-XL.* IEEE JBHI, 2021.
+- Reyna et al. *Will Two Do? Varying Dimensions in Electrocardiography: the
+  PhysioNet/Computing in Cardiology Challenge 2021.* Computing in Cardiology, 2021.
