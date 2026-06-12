@@ -1,6 +1,6 @@
 # deep-ecg
 
-[![CI](https://github.com/sergiolsantamaria2/deep-ecg/actions/workflows/ci.yml/badge.svg)](https://github.com/sergiolsantamaria2/deep-ecg/actions/workflows/ci.yml)
+[![CI](https://github.com/sergiolsantamaria2/ecg-diagnostic-classification/actions/workflows/ci.yml/badge.svg)](https://github.com/sergiolsantamaria2/ecg-diagnostic-classification/actions/workflows/ci.yml)
 
 Multi-label diagnostic classification of 12-lead ECGs on **PTB-XL** (5 diagnostic
 superclasses). A residual 1D CNN and a CNN+Transformer are trained, regularized
