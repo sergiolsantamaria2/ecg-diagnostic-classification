@@ -17,13 +17,12 @@ pretraining harness expects.
 from __future__ import annotations
 
 import hashlib
-from math import gcd
 from pathlib import Path
 
 import numpy as np
 import wfdb
-from scipy.signal import resample_poly
 
+from ..harmonize import fit_length, reorder_to_canonical, resample_to_rate
 from ..labels import SUPERCLASSES
 from .base import CANONICAL_LEADS, ECGSource
 
@@ -130,38 +129,10 @@ class CinC2021Source(ECGSource):
         poison the polyphase filter — and, downstream, the training loss.
         """
         sig, fields = wfdb.rdsamp(str(record_path))  # (T, n) in physical units
-        canonical = self._to_canonical(sig, fields["sig_name"]).T  # (12, T)
+        canonical = reorder_to_canonical(sig, fields["sig_name"]).T  # (12, T)
         canonical = np.nan_to_num(canonical, nan=0.0, posinf=0.0, neginf=0.0)
-        resampled = self._resample(canonical, int(fields["fs"]))
-        return self._fit_length(resampled)
-
-    def _resample(self, signal: np.ndarray, orig_fs: int) -> np.ndarray:
-        """Polyphase anti-aliased resample of ``(12, T)`` to the target rate."""
-        if orig_fs == self.sampling_rate:
-            return signal.astype(np.float32, copy=False)
-        g = gcd(orig_fs, self.sampling_rate)
-        up, down = self.sampling_rate // g, orig_fs // g
-        return resample_poly(signal, up, down, axis=1).astype(np.float32)
-
-    def _fit_length(self, signal: np.ndarray) -> np.ndarray:
-        """Center-crop or zero-pad ``(12, T)`` to ``target_len`` samples."""
-        t = signal.shape[1]
-        if t == self.target_len:
-            return signal
-        if t > self.target_len:
-            start = (t - self.target_len) // 2
-            return signal[:, start : start + self.target_len]
-        out = np.zeros((signal.shape[0], self.target_len), dtype=np.float32)
-        start = (self.target_len - t) // 2
-        out[:, start : start + t] = signal
-        return out
-
-    @staticmethod
-    def _to_canonical(signal: np.ndarray, sig_names: list[str]) -> np.ndarray:
-        """Reorder ``(T, n)`` signal columns into canonical lead order."""
-        col = {name.upper(): i for i, name in enumerate(sig_names)}
-        order = [col[lead.upper()] for lead in CANONICAL_LEADS]
-        return signal[:, order]
+        resampled = resample_to_rate(canonical, int(fields["fs"]), self.sampling_rate)
+        return fit_length(resampled, self.target_len)
 
 
 def _pseudo_fold(stem: str) -> int:

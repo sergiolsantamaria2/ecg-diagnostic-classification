@@ -7,6 +7,7 @@ from pathlib import Path
 import numpy as np
 import wfdb
 
+from ..harmonize import reorder_to_canonical
 from ..labels import SUPERCLASSES, build_label_table, multihot
 from .base import CANONICAL_LEADS, ECGSource
 
@@ -84,17 +85,10 @@ class PTBXLSource(ECGSource):
         first, fields = wfdb.rdsamp(str(self.root / self._filenames[0]))
         n_samples = first.shape[0]
         signals = np.empty((n, len(CANONICAL_LEADS), n_samples), dtype=np.float32)
-        signals[0] = self._to_canonical(first, fields["sig_name"]).T
+        signals[0] = reorder_to_canonical(first, fields["sig_name"]).T
         for i in range(1, n):
             sig, fields = wfdb.rdsamp(str(self.root / self._filenames[i]))
-            signals[i] = self._to_canonical(sig, fields["sig_name"]).T
+            signals[i] = reorder_to_canonical(sig, fields["sig_name"]).T
             if (i + 1) % 2000 == 0:
                 print(f"  loaded {i + 1}/{n} records", flush=True)
         return signals
-
-    @staticmethod
-    def _to_canonical(signal: np.ndarray, sig_names: list[str]) -> np.ndarray:
-        """Reorder ``(T, n)`` signal columns into canonical lead order."""
-        col = {name.upper(): i for i, name in enumerate(sig_names)}
-        order = [col[lead.upper()] for lead in CANONICAL_LEADS]
-        return signal[:, order]
