@@ -1,5 +1,7 @@
 # deep-ecg
 
+[![CI](https://github.com/sergiolsantamaria2/deep-ecg/actions/workflows/ci.yml/badge.svg)](https://github.com/sergiolsantamaria2/deep-ecg/actions/workflows/ci.yml)
+
 Multi-label diagnostic classification of 12-lead ECGs on **PTB-XL** (5 diagnostic
 superclasses). A residual 1D CNN and a CNN+Transformer are trained, regularized
 with signal augmentation, and ensembled to the level of the PTB-XL benchmark. Two
@@ -160,6 +162,67 @@ The encoder is kept separate from the task head and the data layer is built
 around an `ECGSource` adapter, so the encoder and pipeline extend to
 self-supervised pretraining and additional ECG databases without rewrites.
 Experiments are config-driven (Hydra), tracked in Weights & Biases and seeded.
+
+## Serving & deployment
+
+The trained model is packaged into a self-describing serving bundle and exposed
+behind a small FastAPI service. Inference runs on ONNX Runtime, with the
+TorchScript model under PyTorch as a fallback. The default serving target is the
+single ResNet1D model on the full-length signal — it needs no test-time
+augmentation, so it exports to a static graph and is the cheapest to serve; the
+export tooling also accepts several runs to serve the full ensemble.
+
+Export a trained run to a bundle (ONNX + TorchScript + lead statistics, class
+names, decision thresholds and input metadata). Export verifies that ONNX and
+TorchScript match PyTorch within tolerance on random inputs:
+
+```bash
+uv run python scripts/export_model.py outputs/<run> --out artifacts/resnet1d
+# ensemble (faithful to the benchmark): pass several runs and the tuned thresholds
+uv run python scripts/export_model.py outputs/<run1> outputs/<run2> ... \
+    --out artifacts/ensemble --thresholds ensemble.json
+```
+
+Serve it locally; `MODEL_DIR` selects the bundle:
+
+```bash
+MODEL_DIR=artifacts/resnet1d uv run uvicorn deep_ecg.serving.api:app --port 8000
+```
+
+Or in Docker — a lightweight ONNX-only image (no PyTorch or training stack):
+
+```bash
+docker build -t deep-ecg-serve .                 # bundle is copied from artifacts/
+docker run -p 8000:8000 deep-ecg-serve
+# serve another bundle without rebuilding:
+docker run -p 8000:8000 -v "$PWD/artifacts:/app/artifacts" \
+    -e MODEL_DIR=/app/artifacts/ensemble deep-ecg-serve
+```
+
+`POST /predict` takes a 12-lead signal as a `[12, L]` array (leads in canonical
+order I, II, III, aVR, aVL, aVF, V1–V6) at any stated sampling rate; it is
+resampled to 100 Hz and cropped or padded to the trained 10-second window with the
+same preprocessing used in training, then returns the five superclass
+probabilities and the thresholded multi-label decision. `GET /health` reports the
+loaded model.
+
+```bash
+curl localhost:8000/health
+
+python -c "import json, numpy as np; print(json.dumps(
+    {'signal': np.random.randn(12, 1000).round(4).tolist(), 'sampling_rate': 100}))" \
+  | curl -s -X POST localhost:8000/predict -H 'Content-Type: application/json' -d @-
+```
+
+```json
+{
+  "probabilities": {"NORM": 0.91, "MI": 0.02, "STTC": 0.05, "CD": 0.03, "HYP": 0.01},
+  "labels": {"NORM": true, "MI": false, "STTC": false, "CD": false, "HYP": false},
+  "thresholds": {"NORM": 0.75, "MI": 0.15, "STTC": 0.2, "CD": 0.4, "HYP": 0.3},
+  "model": "resnet1d-baseline",
+  "backend": "onnx"
+}
+```
 
 ## References
 
