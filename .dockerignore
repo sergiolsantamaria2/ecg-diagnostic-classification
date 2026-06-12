@@ -1,0 +1,21 @@
+# Keep the build context small: only src/ and artifacts/ are copied into the image.
+.git
+.github
+.venv
+.ruff_cache
+.pytest_cache
+__pycache__
+*.pyc
+
+# Training-only material, never needed to serve
+outputs
+multirun
+wandb
+data
+notebooks
+figures
+scripts
+tests
+configs
+uv.lock
+*.md
