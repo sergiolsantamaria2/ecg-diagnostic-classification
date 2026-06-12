@@ -20,6 +20,11 @@ checkpoints/
 *.pt
 *.ckpt
 
+# Exported serving bundles (models are large; rebuild with scripts/export_model.py)
+artifacts/
+*.onnx
+*.ts
+
 # Notebooks
 .ipynb_checkpoints/
 
