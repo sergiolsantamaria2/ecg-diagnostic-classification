@@ -32,3 +32,6 @@ artifacts/
 .DS_Store
 .vscode/
 .idea/
+
+# Workspace convention: project tooling and private notes never leave the machine
+.claude/
