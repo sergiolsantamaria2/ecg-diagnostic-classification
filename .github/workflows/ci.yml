@@ -15,11 +15,16 @@ jobs:
         with:
           enable-cache: true
 
-      - name: Install dependencies
-        run: uv sync --group dev --group serving
+      # The lock resolves torch to the CUDA build (several GB of NVIDIA wheels).
+      # The runner has no GPU, so install from pyproject with the CPU torch index
+      # instead of syncing the lock; --no-sync below keeps uv from undoing that.
+      - name: Install dependencies (CPU torch)
+        run: |
+          uv venv
+          uv pip install --torch-backend=cpu --group dev --group serving -e .
 
       - name: Lint
-        run: uv run ruff check src scripts tests
+        run: uv run --no-sync ruff check src scripts tests
 
       - name: Test
-        run: uv run pytest -q
+        run: uv run --no-sync pytest -q
