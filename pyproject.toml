@@ -51,3 +51,8 @@ extend-exclude = ["notebooks"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+# The W&B run directory (`wandb/`, gitignored) sits at the repo root and would
+# otherwise make ruff classify the package as first-party on this machine only.
+known-third-party = ["wandb"]

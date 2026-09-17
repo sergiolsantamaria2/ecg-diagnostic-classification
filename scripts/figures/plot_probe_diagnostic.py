@@ -15,7 +15,6 @@ import sys
 from pathlib import Path
 
 import matplotlib.pyplot as plt
-
 import wandb
 
 DEFAULT_PATH = "sergiolsantamaria-tu-wien/deep-ecg"
