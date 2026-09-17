@@ -16,8 +16,7 @@ WORKDIR /app
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/app/src \
-    MODEL_DIR=/app/artifacts/resnet1d \
-    BACKEND=onnx
+    MODEL_DIR=/app/artifacts/ensemble
 
 RUN pip install --no-cache-dir \
     "fastapi>=0.115" \

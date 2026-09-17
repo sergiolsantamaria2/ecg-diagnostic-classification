@@ -1,19 +1,19 @@
-"""Export trained run(s) to ONNX and TorchScript as a serving bundle.
+"""Export trained run(s) to ONNX as a serving bundle.
 
 Loads each run's Hydra config and best checkpoint, rebuilds the model, exports it
-to ONNX (with dynamic batch and time axes) and TorchScript, and verifies that
-both match PyTorch on random inputs within tolerance. The lead statistics, class
-names, decision thresholds and per-model inference settings are written alongside
-as a :class:`~deep_ecg.serving.bundle.ServingBundle`.
+to ONNX (with dynamic batch and time axes) and verifies that the graph matches
+PyTorch on random inputs within tolerance. The lead statistics, class names,
+decision thresholds and per-model inference settings are written alongside as a
+:class:`~deep_ecg.serving.bundle.ServingBundle`.
 
-Single model (default serving target)::
+Single model::
 
     uv run python scripts/export_model.py outputs/<run> --out artifacts/resnet1d
 
-Full ensemble (faithful to the benchmark)::
+Full ensemble (faithful to the results table)::
 
     uv run python scripts/export_model.py outputs/<run1> outputs/<run2> ... \
-        --out artifacts/ensemble --thresholds ensemble.json
+        --out artifacts/ensemble --thresholds outputs/ensemble.json
 """
 
 from __future__ import annotations
@@ -29,7 +29,7 @@ from omegaconf import OmegaConf
 from deep_ecg.data.labels import SUPERCLASSES
 from deep_ecg.models import build_model
 from deep_ecg.serving.bundle import BundleMetadata, ModelSpec, ServingBundle
-from deep_ecg.serving.export import export_model_files, verify_parity
+from deep_ecg.serving.export import export_onnx, verify_parity
 
 
 def load_run_model(run_dir: Path) -> tuple[torch.nn.Module, dict]:
@@ -85,11 +85,8 @@ def main() -> None:
             raise ValueError("runs disagree on sampling rate / length; cannot bundle together")
 
         onnx_path = args.out / f"model_{i}.onnx"
-        ts_path = args.out / f"model_{i}.ts"
-        export_model_files(model, run_target_len, onnx_path, ts_path, args.opset)
-        parity = verify_parity(
-            model, onnx_path, ts_path, run_target_len, atol=args.atol, rtol=args.rtol
-        )
+        export_onnx(model, run_target_len, onnx_path, args.opset)
+        parity = verify_parity(model, onnx_path, run_target_len, atol=args.atol, rtol=args.rtol)
         parities.append(parity)
 
         crop = cfg.data.augmentations.get("crop")
@@ -97,16 +94,12 @@ def main() -> None:
         specs.append(
             ModelSpec(
                 onnx=onnx_path.name,
-                torchscript=ts_path.name,
                 crop_len=crop_len,
                 n_crops=args.n_crops if crop_len else 1,
                 source_run=str(run_dir),
             )
         )
-        print(
-            f"[{i}] {run_dir.name}: exported (crop={crop_len}) max|Δ| "
-            f"onnx={parity['max_abs_diff_onnx']:.2e} ts={parity['max_abs_diff_torchscript']:.2e}"
-        )
+        print(f"[{i}] {run_dir.name}: exported (crop={crop_len}) max|Δ| onnx={parity:.2e}")
 
     # Standardization stats must agree across runs so one preprocessing pass feeds
     # every model in the ensemble; the baselines all fit them on the full train folds.
@@ -124,7 +117,7 @@ def main() -> None:
         sampling_rate=sampling_rate,
         target_len=target_len,
         models=specs,
-        parity={"atol": args.atol, "rtol": args.rtol, "per_model": parities},
+        parity={"atol": args.atol, "rtol": args.rtol, "max_abs_diff_per_model": parities},
     )
     ServingBundle(args.out, metadata, mean, std).save()
     print(f"\nsaved bundle ({len(specs)} model(s)) to {args.out}")

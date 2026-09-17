@@ -39,7 +39,6 @@ class PredictResponse(BaseModel):
     labels: dict[str, bool]
     thresholds: dict[str, float]
     model: str
-    backend: str
 
 
 class HealthResponse(BaseModel):
@@ -47,6 +46,5 @@ class HealthResponse(BaseModel):
 
     status: str
     model: str
-    backend: str
     classes: list[str]
     n_models: int

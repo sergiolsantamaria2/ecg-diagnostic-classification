@@ -1,6 +1,6 @@
 """Self-describing serving bundle: everything needed to run inference.
 
-A bundle is a directory holding the exported model file(s), the training lead
+A bundle is a directory holding the exported ONNX graph(s), the training lead
 statistics, and a ``metadata.json`` describing the classes, decision thresholds,
 expected input format and per-model inference settings. It is produced by the
 export script and consumed by the predictor and the API, so serving depends only
@@ -17,7 +17,7 @@ import numpy as np
 
 from ..data.sources.base import CANONICAL_LEADS
 
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 METADATA_FILE = "metadata.json"
 STATS_FILE = "lead_stats.npz"
 
@@ -33,7 +33,6 @@ class ModelSpec:
     """
 
     onnx: str
-    torchscript: str
     crop_len: int | None = None
     n_crops: int = 1
     source_run: str | None = None
@@ -66,9 +65,6 @@ class ServingBundle:
     # -- paths --------------------------------------------------------------
     def onnx_path(self, spec: ModelSpec) -> Path:
         return self.root / spec.onnx
-
-    def torchscript_path(self, spec: ModelSpec) -> Path:
-        return self.root / spec.torchscript
 
     # -- io -----------------------------------------------------------------
     @classmethod

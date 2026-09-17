@@ -14,8 +14,7 @@ from deep_ecg.data.labels import SUPERCLASSES
 @pytest.fixture
 def client(tiny_bundle, monkeypatch):
     monkeypatch.setenv("MODEL_DIR", str(tiny_bundle))
-    monkeypatch.setenv("BACKEND", "auto")
-    # Reimport so the module-level MODEL_DIR/BACKEND pick up the patched env.
+    # Reimport so the module-level MODEL_DIR picks up the patched env.
     from deep_ecg.serving import api
 
     importlib.reload(api)

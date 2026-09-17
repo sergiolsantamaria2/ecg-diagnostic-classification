@@ -1,9 +1,8 @@
 """Inference over a serving bundle.
 
 Wraps a :class:`~deep_ecg.serving.bundle.ServingBundle` with the preprocessing and
-the runtime. Inference prefers ONNX Runtime and falls back to the TorchScript
-model under PyTorch if ONNX Runtime is unavailable. A crop-trained model is served
-with test-time crop averaging; several models are ensembled by averaging their
+one ONNX Runtime session per exported model. A crop-trained model is served with
+test-time crop averaging; several models are ensembled by averaging their
 probabilities, matching the offline evaluation protocol.
 """
 
@@ -12,6 +11,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import numpy as np
+import onnxruntime as ort
 
 from .bundle import ModelSpec, ServingBundle
 from .preprocess import Preprocessor
@@ -25,8 +25,6 @@ class _OnnxRunner:
     """Run one exported model with ONNX Runtime (CPU)."""
 
     def __init__(self, path: Path) -> None:
-        import onnxruntime as ort
-
         self.session = ort.InferenceSession(str(path), providers=["CPUExecutionProvider"])
         self.input_name = self.session.get_inputs()[0].name
 
@@ -34,38 +32,10 @@ class _OnnxRunner:
         return self.session.run(None, {self.input_name: x.astype(np.float32)})[0]
 
 
-class _TorchScriptRunner:
-    """Run one exported model with the TorchScript interpreter (fallback)."""
-
-    def __init__(self, path: Path) -> None:
-        import torch
-
-        self._torch = torch
-        self.model = torch.jit.load(str(path)).eval()
-
-    def __call__(self, x: np.ndarray) -> np.ndarray:
-        with self._torch.no_grad():
-            return self.model(self._torch.from_numpy(x.astype(np.float32))).numpy()
-
-
-def _make_runners(bundle: ServingBundle, backend: str):
-    """Build a runner per model; resolve ``auto`` to ONNX with TorchScript fallback."""
-    specs = bundle.metadata.models
-    if backend in ("auto", "onnx"):
-        try:
-            runners = [_OnnxRunner(bundle.onnx_path(s)) for s in specs]
-            return runners, "onnx"
-        except Exception:
-            if backend == "onnx":
-                raise
-    runners = [_TorchScriptRunner(bundle.torchscript_path(s)) for s in specs]
-    return runners, "torchscript"
-
-
 class Predictor:
     """Turn a raw ``(12, L)`` ECG into per-class probabilities and decisions."""
 
-    def __init__(self, bundle: ServingBundle, backend: str = "auto") -> None:
+    def __init__(self, bundle: ServingBundle) -> None:
         self.bundle = bundle
         self.meta = bundle.metadata
         self.preprocessor = Preprocessor(
@@ -74,11 +44,11 @@ class Predictor:
             target_fs=self.meta.sampling_rate,
             target_len=self.meta.target_len,
         )
-        self.runners, self.backend = _make_runners(bundle, backend)
+        self.runners = [_OnnxRunner(bundle.onnx_path(spec)) for spec in self.meta.models]
 
     @classmethod
-    def from_dir(cls, root: str | Path, backend: str = "auto") -> Predictor:
-        return cls(ServingBundle.load(root), backend=backend)
+    def from_dir(cls, root: str | Path) -> Predictor:
+        return cls(ServingBundle.load(root))
 
     def predict(self, signal: np.ndarray, sampling_rate: int) -> dict:
         """Probabilities, multi-label decision and the thresholds used."""

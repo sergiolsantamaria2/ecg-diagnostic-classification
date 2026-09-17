@@ -165,12 +165,11 @@ Experiments are config-driven (Hydra), tracked in Weights & Biases and seeded.
 
 ## Serving
 
-A trained run, or several, exports to a self-describing bundle: ONNX and
-TorchScript graphs, the training lead statistics, class names, tuned thresholds
-and the input format. The export checks both graphs against PyTorch on random
-inputs and stops before writing metadata if either drifts past 1e-4. A small
-FastAPI service loads the bundle and runs it on ONNX Runtime, falling back to
-the TorchScript graph when the runtime is missing. Crop-trained models are served
+A trained run, or several, exports to a self-describing bundle: one ONNX graph
+per run, the training lead statistics, class names, tuned thresholds and the
+input format. The export checks each graph against PyTorch on random inputs and
+stops before writing metadata if it drifts past 1e-4. A small FastAPI service
+loads the bundle and runs it on ONNX Runtime. Crop-trained models are served
 with the same five-crop averaging used in evaluation, and a multi-run bundle
 averages probabilities, so the served ensemble is the one in the results table.
 
@@ -193,7 +192,7 @@ order (I, II, III, aVR, aVL, aVF, V1–V6) at any stated sampling rate. The serv
 resamples it to 100 Hz, crops or zero-pads to 10 s, standardises with the
 training statistics, and returns the five superclass probabilities, the
 thresholded decision and the thresholds used. `GET /health` reports the loaded
-bundle and backend.
+bundle.
 
 ```bash
 python -c "import json, numpy as np; print(json.dumps(
