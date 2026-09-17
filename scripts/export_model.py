@@ -131,12 +131,19 @@ def main() -> None:
 
 
 def _resolve_thresholds(path: Path | None, first_run: Path, classes: list[str]) -> dict[str, float]:
-    """Decision thresholds from an explicit file, the first run's eval, or 0.5."""
+    """Decision thresholds from an explicit file, the first run's eval, or 0.5.
+
+    Both ``evaluate.py`` and ``ensemble.py`` write a ``thresholds`` map; older
+    ensemble files only carry them inside ``per_class_report``.
+    """
     source = path if path is not None else first_run / "evaluation.json"
     if source.exists():
         data = json.loads(source.read_text())
-        if "thresholds" in data:
-            return {c: float(data["thresholds"][c]) for c in classes}
+        thresholds = data.get("thresholds") or {
+            row["class"]: row["threshold"] for row in data.get("per_class_report", [])
+        }
+        if thresholds:
+            return {c: float(thresholds[c]) for c in classes}
     print("no thresholds found; defaulting to 0.5 per class")
     return {c: 0.5 for c in classes}
 

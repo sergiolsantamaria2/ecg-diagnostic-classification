@@ -95,6 +95,7 @@ def main() -> None:
                 "runs": [str(d) for d in args.run_dirs],
                 "macro_auroc": metrics["macro_auroc"],
                 "per_class_auroc": metrics["per_class_auroc"],
+                "thresholds": thresholds,
                 "per_class_report": report,
             },
             indent=2,
