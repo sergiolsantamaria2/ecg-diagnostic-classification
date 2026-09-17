@@ -25,7 +25,7 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="deep-ecg",
+    title="ecg-diagnostic-classification",
     summary="12-lead ECG diagnostic classification (PTB-XL superclasses)",
     lifespan=lifespan,
 )

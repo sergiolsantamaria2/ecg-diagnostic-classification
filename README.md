@@ -1,4 +1,4 @@
-# deep-ecg
+# ecg-diagnostic-classification
 
 [![CI](https://github.com/sergiolsantamaria2/ecg-diagnostic-classification/actions/workflows/ci.yml/badge.svg)](https://github.com/sergiolsantamaria2/ecg-diagnostic-classification/actions/workflows/ci.yml)
 
@@ -185,7 +185,7 @@ The Docker image installs ONNX Runtime and FastAPI only, no PyTorch, and copies
 another model without rebuilding.
 
 ```bash
-docker build -t deep-ecg-serve . && docker run -p 8000:8000 deep-ecg-serve
+docker build -t ecg-diagnostic-classification . && docker run -p 8000:8000 ecg-diagnostic-classification
 ```
 
 `POST /predict` accepts one 12-lead signal as a `[12, L]` array in canonical lead

@@ -1,5 +1,5 @@
 [project]
-name = "deep-ecg"
+name = "ecg-diagnostic-classification"
 version = "0.1.0"
 description = "Deep learning for 12-lead ECG diagnostic classification on PTB-XL"
 readme = "README.md"

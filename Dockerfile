@@ -3,12 +3,12 @@
 # FastAPI, so the heavy training dependencies are never installed here.
 #
 # Build (export a bundle first; see README "Serving & Deployment"):
-#   docker build -t deep-ecg-serve .
+#   docker build -t ecg-diagnostic-classification .
 # Run:
-#   docker run -p 8000:8000 deep-ecg-serve
+#   docker run -p 8000:8000 ecg-diagnostic-classification
 # Serve a different bundle without rebuilding (mount it and point MODEL_DIR at it):
 #   docker run -p 8000:8000 -v "$PWD/artifacts:/app/artifacts" \
-#     -e MODEL_DIR=/app/artifacts/ensemble deep-ecg-serve
+#     -e MODEL_DIR=/app/artifacts/ensemble ecg-diagnostic-classification
 
 FROM python:3.12-slim
 
