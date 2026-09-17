@@ -166,8 +166,9 @@ Experiments are config-driven (Hydra), tracked in Weights & Biases and seeded.
 ## Serving
 
 A trained run, or several, exports to a self-describing bundle: one ONNX graph
-per run, the training lead statistics, class names, tuned thresholds and the
-input format. The export checks each graph against PyTorch on random inputs and
+per run, traced at the length it is served at (the full 10 s window, or the
+training crop), plus the training lead statistics, class names, tuned thresholds
+and the input format. The export checks each graph against PyTorch on random inputs and
 stops before writing metadata if it drifts past 1e-4. A small FastAPI service
 loads the bundle and runs it on ONNX Runtime. Crop-trained models are served
 with the same five-crop averaging used in evaluation, and a multi-run bundle

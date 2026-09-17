@@ -1,7 +1,8 @@
 """Export trained run(s) to ONNX as a serving bundle.
 
 Loads each run's Hydra config and best checkpoint, rebuilds the model, exports it
-to ONNX (with dynamic batch and time axes) and verifies that the graph matches
+to ONNX (dynamic batch axis, traced at the length it is served at) and verifies
+that the graph matches
 PyTorch on random inputs within tolerance. The lead statistics, class names,
 decision thresholds and per-model inference settings are written alongside as a
 :class:`~deep_ecg.serving.bundle.ServingBundle`.
@@ -84,13 +85,15 @@ def main() -> None:
         elif (run_sr, run_target_len) != (sampling_rate, target_len):
             raise ValueError("runs disagree on sampling rate / length; cannot bundle together")
 
-        onnx_path = args.out / f"model_{i}.onnx"
-        export_onnx(model, run_target_len, onnx_path, args.opset)
-        parity = verify_parity(model, onnx_path, run_target_len, atol=args.atol, rtol=args.rtol)
-        parities.append(parity)
-
+        # A crop-trained model is served on crops, so its graph is traced at that length.
         crop = cfg.data.augmentations.get("crop")
         crop_len = int(crop) if crop else None
+        served_len = crop_len or run_target_len
+        onnx_path = args.out / f"model_{i}.onnx"
+        export_onnx(model, served_len, onnx_path, args.opset)
+        parity = verify_parity(model, onnx_path, served_len, atol=args.atol, rtol=args.rtol)
+        parities.append(parity)
+
         specs.append(
             ModelSpec(
                 onnx=onnx_path.name,
